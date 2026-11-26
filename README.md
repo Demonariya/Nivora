@@ -15,6 +15,14 @@ Nivora uses the official WebKit WinCairo port through its native WKView C API. T
 - nivora-storage — SQLite history primitives
 - nivora-tabs — in-memory tab model
 
+## Current interface
+
+The native Slint shell now uses a shared Dark/Light token palette, compact top tab treatment, a focused address/search field, minimal Back/Forward/Reload controls, optional vertical placement for the current tab, and a compact Quick Settings popover. Controls include hover, pressed, disabled, and focus feedback, short transitions, and accessible labels/actions.
+
+The tab-placement switch changes the presentation of the current tab only. Multi-tab WebKit ownership, tab drag-and-drop, automatic Windows appearance detection, bookmark/history/download panels, suggestions, favicons, TLS/security indicators, and real percentage-based loading progress are not yet implemented. These are intentionally not represented by non-functional controls.
+
+See [the UI design system](docs/ui-design-system.md) for the palette, component inventory, interaction behavior, and native child-window constraints.
+
 ## Build requirements
 
 Windows 11 x64, Rust stable 1.88+, Visual Studio with Desktop development with C++ and Windows SDK, CMake, Ninja, Git, Perl, Python 3.11, Ruby, LLVM, gperf, and a locally built official WebKit WinCairo SDK.

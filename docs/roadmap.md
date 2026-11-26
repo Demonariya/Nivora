@@ -13,6 +13,23 @@ Status labels describe evidence in this repository, not intended work.
 - [x] `cargo test --workspace --locked` passed on GitHub Actions Linux.
 - [x] Windows-target Rust type-check passed on GitHub Actions (this check does not compile the C++ bridge).
 
+## UI/UX milestone — native Slint chrome
+
+- [x] Shared Dark/Light design tokens.
+- [x] Reusable IconButton, TextButton, TabItem, and AddressField components.
+- [x] Compact tab strip and navigation/address toolbar.
+- [x] Optional vertical presentation for the current tab.
+- [x] Functional Quick Settings for appearance and tab placement.
+- [x] Hover, pressed, disabled, focus, and loading feedback.
+- [x] Accessible names, roles, and default actions for custom controls.
+- [x] Keep the settings popover inside the Slint chrome region so the native WebKit child HWND cannot cover it.
+- [ ] Follow Windows System appearance automatically.
+- [ ] Real multi-tab WebKit lifecycle, favicons, and drag-and-drop.
+- [ ] Search suggestions, security/TLS indicators, and engine-reported loading progress.
+- [ ] Functional bookmarks, history, downloads, passwords, and extensions panels.
+- [ ] Settings categories and accessibility keyboard traversal tests.
+- [ ] Windows visual QA at small/normal/maximized sizes and 100%–200% DPI.
+
 ## Milestone 1 — first WinCairo view
 
 - [x] Inspect upstream WinCairo WKView header and implementation.

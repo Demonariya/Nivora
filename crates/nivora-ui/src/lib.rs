@@ -156,7 +156,9 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             }
             NAVIGATION_FAILED => {
                 ui.set_is_loading(false);
-                ui.set_page_status("Navigation failed. Check the address or WebKit network process.".into());
+                ui.set_page_status(
+                    "Navigation failed. Check the address or WebKit network process.".into(),
+                );
             }
             _ => {}
         }
@@ -311,7 +313,10 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                     return;
                 };
                 let RawWindowHandle::Win32(win32) = raw_handle.as_raw() else {
-                    ui.set_page_status("Slint did not provide a Win32 HWND; WebKit embedding is unavailable.".into());
+                    ui.set_page_status(
+                        "Slint did not provide a Win32 HWND; WebKit embedding is unavailable."
+                            .into(),
+                    );
                     return;
                 };
                 host_hwnd.set(win32.hwnd.get() as *mut c_void);
@@ -341,7 +346,9 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                     Ok(mut engine) => {
                         let initial_url = state.tabs[active_index].url.borrow().clone();
                         if let Err(error) = engine.navigate(&initial_url) {
-                            ui.set_page_status(format!("Initial navigation failed: {error}").into());
+                            ui.set_page_status(
+                                format!("Initial navigation failed: {error}").into(),
+                            );
                         }
                         engine.set_visible(true);
                         state.tabs[active_index].engine = Some(engine);

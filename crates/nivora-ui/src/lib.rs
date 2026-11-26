@@ -40,6 +40,8 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
 
     struct EventSink {
         ui: slint::Weak<MainWindow>,
+        history: Rc<RefCell<nivora_storage::Storage>>,
+        history_dirty: Rc<Cell<bool>>,
         tab_id: u64,
         active_tab_id: Rc<Cell<u64>>,
         tab_url: Rc<RefCell<String>>,
@@ -201,6 +203,16 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             NAVIGATION_FINISHED => {
                 sink.is_loading.set(false);
                 sink.progress.set(1.0);
+                if !value.is_empty() && !value.starts_with("about:") && !value.starts_with("file:") {
+                    let title = sink.tab_title.borrow().clone();
+                    let title = (!title.trim().is_empty() && title != "New Tab")
+                        .then_some(title.as_str());
+                    if let Err(error) = sink.history.borrow().record_visit(&value, title) {
+                        eprintln!("Could not persist browser history: {error}");
+                    } else {
+                        sink.history_dirty.set(true);
+                    }
+                }
             }
             NAVIGATION_FAILED => {
                 sink.is_loading.set(false);
@@ -261,6 +273,15 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
 
     let browser = Rc::new(RefCell::new(BrowserState::new()));
     let active_tab_id = Rc::new(Cell::new(1_u64));
+    let history_path = std::env::var_os("APPDATA")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| std::env::temp_dir())
+        .join("Nivora");
+    std::fs::create_dir_all(&history_path)?;
+    let history = Rc::new(RefCell::new(nivora_storage::Storage::open(
+        history_path.join("browser.sqlite3"),
+    )?));
+    let history_dirty = Rc::new(Cell::new(false));
     sync_ui(&ui, &browser.borrow());
 
     {
@@ -486,6 +507,8 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
         let ui = ui.clone_strong();
         let browser = browser.clone();
         let active_tab_id = active_tab_id.clone();
+        let history = history.clone();
+        let history_dirty = history_dirty.clone();
         let shortcut_context = shortcut_context.clone();
         let shortcut_install_attempted = shortcut_install_attempted.clone();
         let host_hwnd = Cell::new(std::ptr::null_mut::<c_void>());
@@ -542,12 +565,22 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             if titles_changed {
                 sync_tab_titles(&ui, &state);
             }
+            if history_dirty.replace(false) {
+                match history.borrow().recent_history(100) {
+                    Ok(entries) => ui.set_page_status(
+                        format!("History saved · {} recent visits", entries.len()).into(),
+                    ),
+                    Err(error) => eprintln!("Could not refresh history status: {error}"),
+                }
+            }
             ui.set_is_loading(state.active_tab().is_loading.get());
             ui.set_load_progress(state.active_tab().progress.get() as f32);
             if state.tabs[active_index].engine.is_none() {
                 let tab_id = state.tabs[active_index].id;
                 let sink = Box::new(EventSink {
                     ui: ui.as_weak(),
+                    history: history.clone(),
+                    history_dirty: history_dirty.clone(),
                     tab_id,
                     active_tab_id: active_tab_id.clone(),
                     tab_url: state.tabs[active_index].url.clone(),

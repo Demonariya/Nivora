@@ -97,6 +97,7 @@ component TabItem inherits Rectangle {
     in property <string> title;
     in property <bool> active: true;
     callback clicked();
+    callback close-requested();
 
     accessible-role: tab;
     accessible-label: root.title;
@@ -119,7 +120,7 @@ component TabItem inherits Rectangle {
     Text {
         x: 29px;
         y: 0px;
-        width: parent.width - 38px;
+        width: parent.width - 66px;
         height: parent.height;
         text: root.title;
         color: root.active ? Palette.textPrimary : Palette.textSecondary;
@@ -128,8 +129,39 @@ component TabItem inherits Rectangle {
         vertical-alignment: center;
         overflow: elide;
     }
-    TouchArea {
+    tab-hit := TouchArea {
+        width: parent.width - 28px;
+        height: parent.height;
         clicked => { root.clicked(); }
+        pointer-event(event) => {
+            if (event.button == PointerEventButton.middle && event.kind == PointerEventKind.down) {
+                root.close-requested();
+            }
+        }
+    }
+
+    Rectangle {
+        x: parent.width - 26px;
+        y: 4px;
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: close-hit.has-hover ? Palette.hover : #00000000;
+        opacity: root.active || close-hit.has-hover ? 1 : 0.55;
+
+        Text {
+            text: "×";
+            color: Palette.textSecondary;
+            font-family: "Segoe UI Symbol";
+            font-size: 15px;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            width: parent.width;
+            height: parent.height;
+        }
+        close-hit := TouchArea {
+            clicked => { root.close-requested(); }
+        }
     }
 }
 
@@ -221,7 +253,7 @@ export component MainWindow inherits Window {
     callback go-forward();
     callback reload();
     callback new-tab();
-    callback close-active-tab();
+    callback close-tab(int);
     callback select-tab(int);
 
     Rectangle {
@@ -241,15 +273,8 @@ export component MainWindow inherits Window {
                 title: title;
                 active: i == root.active-tab-index;
                 clicked => { root.select-tab(i); }
+                close-requested => { root.close-tab(i); }
             }
-        }
-
-        IconButton {
-            x: parent.width - 82px;
-            y: 3px;
-            glyph: "×";
-            description: "Close active tab";
-            clicked => { root.close-active-tab(); }
         }
         IconButton {
             x: parent.width - 44px;
@@ -366,6 +391,7 @@ export component MainWindow inherits Window {
             title: title;
             active: i == root.active-tab-index;
             clicked => { root.select-tab(i); }
+            close-requested => { root.close-tab(i); }
         }
         IconButton {
             x: 12px;

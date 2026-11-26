@@ -1,6 +1,6 @@
 //! SQLite-backed browser persistence. No credentials are stored in this milestone.
 
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use std::path::Path;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

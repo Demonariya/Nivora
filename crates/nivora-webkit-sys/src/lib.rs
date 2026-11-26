@@ -15,7 +15,7 @@ pub type EventCallback = unsafe extern "C" fn(*mut c_void, i32, *const c_char);
 
 #[cfg(windows)]
 mod native {
-    use super::{c_char, c_void, EventCallback};
+    use super::{EventCallback, c_char, c_void};
 
     unsafe extern "C" {
         pub fn nivora_webkit_view_create(

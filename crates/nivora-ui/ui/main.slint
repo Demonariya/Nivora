@@ -1,0 +1,112 @@
+import { Button, LineEdit } from "std-widgets.slint";
+
+export component MainWindow inherits Window {
+    title: "Nivora";
+    min-width: 760px;
+    min-height: 520px;
+    width: 1120px;
+    height: 760px;
+    background: #101319;
+
+    in-out property <string> address: "https://example.com";
+    in-out property <string> page-status: "Starting WebKit…";
+    in-out property <bool> can-go-back: false;
+    in-out property <bool> can-go-forward: false;
+    in-out property <bool> is-loading: false;
+
+    out property <float> browser-x: browser-host.x / 1px;
+    out property <float> browser-y: browser-host.y / 1px;
+    out property <float> browser-width: browser-host.width / 1px;
+    out property <float> browser-height: browser-host.height / 1px;
+
+    callback navigate(string);
+    callback go-back();
+    callback go-forward();
+    callback reload();
+
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: 100px;
+        background: #171c25;
+
+        HorizontalLayout {
+            x: 16px;
+            y: 14px;
+            width: parent.width - 32px;
+            height: 36px;
+            spacing: 8px;
+
+            Button {
+                text: "Back";
+                enabled: root.can-go-back;
+                clicked => { root.go-back(); }
+            }
+            Button {
+                text: "Forward";
+                enabled: root.can-go-forward;
+                clicked => { root.go-forward(); }
+            }
+            Button {
+                text: "Reload";
+                clicked => { root.reload(); }
+            }
+            LineEdit {
+                width: 1*;
+                text <=> root.address;
+                placeholder-text: "Enter a URL or search";
+                accepted => { root.navigate(root.address); }
+            }
+            Button {
+                text: "Go";
+                clicked => { root.navigate(root.address); }
+            }
+        }
+
+        Text {
+            x: 18px;
+            y: 62px;
+            text: root.page-status;
+            color: #a7b0c0;
+            font-size: 12px;
+            vertical-alignment: center;
+        }
+        if root.is-loading: Rectangle {
+            x: 0px;
+            y: 98px;
+            width: parent.width;
+            height: 2px;
+            background: #79a7ff;
+        }
+    }
+
+    Rectangle {
+        x: 0px;
+        y: 100px;
+        width: parent.width;
+        height: parent.height - 100px;
+        background: #0c0f14;
+    }
+
+    // This rectangle is a geometry anchor only. The actual page is a native
+    // Win32 child HWND created by WebKit's WinCairo WKView API.
+    Rectangle {
+        x: 12px;
+        y: 112px;
+        width: parent.width - 24px;
+        height: parent.height - 124px;
+        background: #111722;
+        border-radius: 8px;
+    }
+    Rectangle {
+        id: browser-host;
+        x: 12px;
+        y: 112px;
+        width: parent.width - 24px;
+        height: parent.height - 124px;
+        background: transparent;
+        border-radius: 8px;
+        // This rectangle is only a geometry anchor; it does not render web content.
+    }
+}

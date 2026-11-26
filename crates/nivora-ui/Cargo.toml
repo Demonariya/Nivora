@@ -1,0 +1,15 @@
+[package]
+name = "nivora-ui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+build = "build.rs"
+
+[dependencies]
+nivora-engine.workspace = true
+slint.workspace = true
+raw-window-handle-06 = { package = "raw-window-handle", version = "0.6" }
+
+[build-dependencies]
+slint-build = "1.19.1"

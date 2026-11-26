@@ -1,0 +1,80 @@
+//! SQLite-backed browser persistence. No credentials are stored in this milestone.
+
+use rusqlite::{params, Connection};
+use std::path::Path;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HistoryEntry {
+    pub id: i64,
+    pub url: String,
+    pub title: Option<String>,
+    pub visited_at: i64,
+}
+
+pub struct Storage {
+    connection: Connection,
+}
+
+impl Storage {
+    pub fn open(path: impl AsRef<Path>) -> rusqlite::Result<Self> {
+        let connection = Connection::open(path)?;
+        Self::initialize(connection)
+    }
+
+    pub fn in_memory() -> rusqlite::Result<Self> {
+        Self::initialize(Connection::open_in_memory()?)
+    }
+
+    fn initialize(connection: Connection) -> rusqlite::Result<Self> {
+        connection.execute_batch(
+            "PRAGMA foreign_keys = ON;
+             PRAGMA journal_mode = WAL;
+             CREATE TABLE IF NOT EXISTS history (
+                 id INTEGER PRIMARY KEY,
+                 url TEXT NOT NULL,
+                 title TEXT,
+                 visited_at INTEGER NOT NULL DEFAULT (unixepoch())
+             );
+             CREATE INDEX IF NOT EXISTS idx_history_visited_at ON history(visited_at DESC);",
+        )?;
+        Ok(Self { connection })
+    }
+
+    pub fn record_visit(&self, url: &str, title: Option<&str>) -> rusqlite::Result<()> {
+        self.connection.execute(
+            "INSERT INTO history(url, title) VALUES (?1, ?2)",
+            params![url, title],
+        )?;
+        Ok(())
+    }
+
+    pub fn recent_history(&self, limit: usize) -> rusqlite::Result<Vec<HistoryEntry>> {
+        let mut statement = self.connection.prepare(
+            "SELECT id, url, title, visited_at FROM history ORDER BY visited_at DESC, id DESC LIMIT ?1",
+        )?;
+        let rows = statement.query_map([limit as i64], |row| {
+            Ok(HistoryEntry {
+                id: row.get(0)?,
+                url: row.get(1)?,
+                title: row.get(2)?,
+                visited_at: row.get(3)?,
+            })
+        })?;
+        rows.collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Storage;
+
+    #[test]
+    fn persists_and_reads_history_rows() {
+        let storage = Storage::in_memory().expect("in-memory database");
+        storage.record_visit("https://example.com", Some("Example")).unwrap();
+        let entries = storage.recent_history(10).unwrap();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].url, "https://example.com");
+        assert_eq!(entries[0].title.as_deref(), Some("Example"));
+    }
+}

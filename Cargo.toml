@@ -1,0 +1,27 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/nivora-app",
+    "crates/nivora-ui",
+    "crates/nivora-engine",
+    "crates/nivora-webkit-sys",
+    "crates/nivora-storage",
+    "crates/nivora-tabs",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+authors = ["Demonariya"]
+repository = "https://github.com/Demonariya/Nivora"
+
+[workspace.dependencies]
+nivora-engine = { path = "crates/nivora-engine" }
+nivora-storage = { path = "crates/nivora-storage" }
+nivora-tabs = { path = "crates/nivora-tabs" }
+nivora-ui = { path = "crates/nivora-ui" }
+nivora-webkit-sys = { path = "crates/nivora-webkit-sys" }
+rusqlite = { version = "0.38", features = ["bundled"] }
+slint = { version = "1.19.1", features = ["raw-window-handle-06"] }

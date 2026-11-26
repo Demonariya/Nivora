@@ -1,0 +1,36 @@
+name: Bug report
+description: Report a reproducible Nivora defect
+title: "bug: "
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Nivora commit or version
+      placeholder: commit SHA
+    validations:
+      required: true
+  - type: input
+    id: webkit
+    attributes:
+      label: WebKit WinCairo revision
+      placeholder: WebKit commit SHA
+  - type: textarea
+    id: environment
+    attributes:
+      label: Windows environment
+      description: Windows build, architecture, renderer, DPI scale, and GPU.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true

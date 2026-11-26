@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust-workspace:
+    name: Rust workspace checks (host; no WinCairo runtime)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Check workspace
+        run: cargo check --workspace
+      - name: Test workspace
+        run: cargo test --workspace
+
+  windows-native:
+    name: Windows WinCairo integration (requires pre-provisioned SDK)
+    if: \${{ vars.WEBKIT_SDK_READY == 'true' }}
+    runs-on: [self-hosted, Windows, X64, webkit-wincairo]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+          components: rustfmt, clippy
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Validate WebKit SDK environment
+        shell: pwsh
+        run: |
+          if (-not $env:WEBKIT_INCLUDE_DIR -or -not $env:WEBKIT_LIB_DIR) {
+            throw 'WEBKIT_INCLUDE_DIR and WEBKIT_LIB_DIR must be provisioned by the runner.'
+          }
+          if (-not (Test-Path (Join-Path $env:WEBKIT_INCLUDE_DIR 'WebKit/WKView.h'))) {
+            throw 'WinCairo public headers are missing.'
+          }
+          if (-not (Test-Path (Join-Path $env:WEBKIT_LIB_DIR 'WebKit2.lib'))) {
+            throw 'WebKit2.lib is missing.'
+          }
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Compile native application
+        run: cargo build --release -p nivora-app

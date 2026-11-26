@@ -323,6 +323,53 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
     }
     {
         let browser = browser.clone();
+        ui.on_create_tab_drag_data(move |index| {
+            let state = browser.borrow();
+            let Some(tab) = usize::try_from(index).ok().and_then(|index| state.tabs.get(index)) else {
+                return slint::DataTransfer::default();
+            };
+            let mut transfer = slint::DataTransfer::default();
+            transfer.set_plain_text(tab.id.to_string().into());
+            transfer
+        });
+    }
+    {
+        let browser = browser.clone();
+        let active_tab_id = active_tab_id.clone();
+        let ui_weak = ui.as_weak();
+        ui.on_reorder_tab(move |transfer, target_index| {
+            let Ok(source_id) = transfer.plain_text() else {
+                return;
+            };
+            let Ok(source_id) = source_id.parse::<u64>() else {
+                return;
+            };
+            if target_index < 0 {
+                return;
+            }
+            let mut state = browser.borrow_mut();
+            let Some(source_index) = state.tabs.iter().position(|tab| tab.id == source_id) else {
+                return;
+            };
+            let target_index = (target_index as usize).min(state.tabs.len().saturating_sub(1));
+            if source_index == target_index {
+                return;
+            }
+            let active_id = state.active_tab().id;
+            let tab = state.tabs.remove(source_index);
+            state.tabs.insert(target_index, tab);
+            state.active = state.tabs.iter().position(|tab| tab.id == active_id).unwrap_or(0);
+            let active = state.active;
+            activate_tab(&mut state, active);
+            active_tab_id.set(state.active_tab().id);
+            if let Some(ui) = ui_weak.upgrade() {
+                sync_ui(&ui, &state);
+                ui.set_page_status("Tab reordered".into());
+            }
+        });
+    }
+    {
+        let browser = browser.clone();
         let active_tab_id = active_tab_id.clone();
         let ui_weak = ui.as_weak();
         ui.on_close_tab(move |requested_index| {

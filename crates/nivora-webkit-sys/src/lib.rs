@@ -200,7 +200,6 @@ impl Drop for WebKitView {
     }
 }
 
-
 /// Installs a thread-scoped Win32 message hook for browser keyboard shortcuts.
 ///
 /// # Safety
@@ -221,7 +220,9 @@ pub unsafe fn install_keyboard_shortcuts(
     _host_window: *mut c_void,
     _callback: KeyboardShortcutCallback,
     _context: *mut c_void,
-) -> bool { false }
+) -> bool {
+    false
+}
 
 #[cfg(windows)]
 pub unsafe fn uninstall_keyboard_shortcuts() {

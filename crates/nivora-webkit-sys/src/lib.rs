@@ -4,6 +4,7 @@
 //! structure layout or API calling convention is re-declared in Rust.
 
 use std::ffi::{c_char, c_void};
+#[cfg(windows)]
 use std::ptr::NonNull;
 
 pub const NAVIGATION_STARTED: i32 = 1;
@@ -47,6 +48,7 @@ mod native {
 
 /// Owns one WinCairo `WKViewRef` through the native compatibility bridge.
 pub struct WebKitView {
+    #[cfg(windows)]
     raw: NonNull<c_void>,
 }
 

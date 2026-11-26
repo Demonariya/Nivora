@@ -1,4 +1,174 @@
-import { Button, LineEdit } from "std-widgets.slint";
+// Nivora's native Slint design system. Keep browser rendering in the
+// WinCairo child HWND; this file owns only the browser chrome and its geometry.
+
+export global Palette {
+    in-out property <bool> dark: true;
+
+    out property <color> window: dark ? #111318 : #f4f5f7;
+    out property <color> chrome: dark ? #171a20 : #fafbfc;
+    out property <color> surface: dark ? #1d2129 : #ffffff;
+    out property <color> field: dark ? #20252e : #eef0f3;
+    out property <color> page: dark ? #0d0f13 : #ffffff;
+    out property <color> border: dark ? #2b303a : #dfe2e7;
+    out property <color> textPrimary: dark ? #e8ebf0 : #20242b;
+    out property <color> textSecondary: dark ? #a0a8b5 : #68717f;
+    out property <color> textMuted: dark ? #737d8b : #929aa6;
+    out property <color> hover: dark ? #292f39 : #e9ecf0;
+    out property <color> pressed: dark ? #333b47 : #dfe3e9;
+    out property <color> active: dark ? #2b3441 : #e4eaf2;
+    out property <color> accent: dark ? #8aa8d8 : #456b9f;
+    out property <color> selection: dark ? #3d5d86 : #c8d9ef;
+}
+
+component IconButton inherits Rectangle {
+    in property <string> glyph;
+    in property <bool> enabled: true;
+    in property <bool> selected: false;
+    callback clicked();
+
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: !root.enabled ? #00000000
+        : hit.pressed ? Palette.pressed
+        : hit.has-hover ? Palette.hover
+        : root.selected ? Palette.active : #00000000;
+    animate background { duration: 120ms; }
+
+    Text {
+        text: root.glyph;
+        color: root.enabled ? Palette.textSecondary : Palette.textMuted;
+        font-family: "Segoe UI Symbol";
+        font-size: 17px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        width: parent.width;
+        height: parent.height;
+    }
+
+    hit := TouchArea {
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+    }
+}
+
+component TextButton inherits Rectangle {
+    in property <string> label;
+    in property <bool> enabled: true;
+    callback clicked();
+
+    width: 88px;
+    height: 28px;
+    border-radius: 6px;
+    background: !root.enabled ? #00000000
+        : hit.pressed ? Palette.pressed
+        : hit.has-hover ? Palette.hover : #00000000;
+    animate background { duration: 120ms; }
+
+    Text {
+        text: root.label;
+        color: root.enabled ? Palette.textPrimary : Palette.textMuted;
+        font-family: "Segoe UI Variable";
+        font-size: 12px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        width: parent.width;
+        height: parent.height;
+    }
+
+    hit := TouchArea {
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+    }
+}
+
+component TabItem inherits Rectangle {
+    in property <string> title;
+    in property <bool> active: true;
+
+    width: 184px;
+    height: 30px;
+    border-radius: 8px;
+    background: root.active ? Palette.surface : #00000000;
+    animate background { duration: 120ms; }
+
+    Rectangle {
+        x: 10px;
+        y: 9px;
+        width: 11px;
+        height: 11px;
+        border-radius: 4px;
+        background: Palette.accent;
+    }
+
+    Text {
+        x: 29px;
+        y: 0px;
+        width: parent.width - 38px;
+        height: parent.height;
+        text: root.title;
+        color: root.active ? Palette.textPrimary : Palette.textSecondary;
+        font-family: "Segoe UI Variable";
+        font-size: 12px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component AddressField inherits Rectangle {
+    in-out property <string> text;
+    in property <bool> loading;
+    callback accepted();
+
+    height: 36px;
+    border-radius: 9px;
+    border-width: 1px;
+    border-color: input.has-focus ? Palette.accent : Palette.border;
+    background: Palette.field;
+    clip: true;
+    animate border-color { duration: 140ms; }
+
+    Text {
+        x: 12px;
+        y: 0px;
+        width: 18px;
+        height: parent.height;
+        text: root.loading ? "◌" : "⌕";
+        color: root.loading ? Palette.accent : Palette.textMuted;
+        font-family: "Segoe UI Symbol";
+        font-size: 15px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    input := TextInput {
+        x: 38px;
+        y: 0px;
+        width: parent.width - 50px;
+        height: parent.height;
+        text <=> root.text;
+        font-family: "Segoe UI Variable";
+        font-size: 13px;
+        color: Palette.textPrimary;
+        selection-background-color: Palette.selection;
+        selection-foreground-color: Palette.textPrimary;
+        vertical-alignment: center;
+        single-line: true;
+        accepted => { root.accepted(); }
+    }
+
+    if input.text == "": Text {
+        x: 39px;
+        y: 0px;
+        width: parent.width - 52px;
+        height: parent.height;
+        text: "Search or enter address";
+        color: Palette.textMuted;
+        font-family: "Segoe UI Variable";
+        font-size: 13px;
+        vertical-alignment: center;
+    }
+}
 
 export component MainWindow inherits Window {
     title: "Nivora";
@@ -6,7 +176,9 @@ export component MainWindow inherits Window {
     min-height: 520px;
     preferred-width: 1120px;
     preferred-height: 760px;
-    background: #101319;
+    background: Palette.window;
+    default-font-family: "Segoe UI Variable";
+    default-font-size: 13px;
 
     in-out property <string> address: "https://example.com";
     in-out property <string> page-status: "Starting WebKit…";
@@ -14,10 +186,13 @@ export component MainWindow inherits Window {
     in-out property <bool> can-go-forward: false;
     in-out property <bool> is-loading: false;
 
-    out property <length> browser-x: browser_host.x;
-    out property <length> browser-y: browser_host.y;
-    out property <length> browser-width: browser_host.width;
-    out property <length> browser-height: browser_host.height;
+    property <bool> vertical-tabs: false;
+    property <bool> settings-open: false;
+
+    out property <length> browser-x: browser-host.x;
+    out property <length> browser-y: browser-host.y;
+    out property <length> browser-width: browser-host.width;
+    out property <length> browser-height: browser-host.height;
 
     callback navigate(string);
     callback go-back();
@@ -28,85 +203,208 @@ export component MainWindow inherits Window {
         x: 0px;
         y: 0px;
         width: parent.width;
-        height: 100px;
-        background: #171c25;
+        height: 40px;
+        background: Palette.chrome;
 
-        HorizontalLayout {
-            x: 16px;
-            y: 14px;
-            width: parent.width - 32px;
-            height: 36px;
-            spacing: 8px;
+        if !root.vertical-tabs: TabItem {
+            x: 14px;
+            y: 5px;
+            title: "Nivora";
+            active: true;
+        }
 
-            Button {
-                text: "Back";
-                enabled: root.can-go-back;
-                clicked => { root.go-back(); }
-            }
-            Button {
-                text: "Forward";
-                enabled: root.can-go-forward;
-                clicked => { root.go-forward(); }
-            }
-            Button {
-                text: "Reload";
-                clicked => { root.reload(); }
-            }
-            LineEdit {
-                min-width: 180px;
-                horizontal-stretch: 1;
-                text <=> root.address;
-                placeholder-text: "Enter a URL or search";
-                accepted => { root.navigate(root.address); }
-            }
-            Button {
-                text: "Go";
-                clicked => { root.navigate(root.address); }
-            }
+        if root.vertical-tabs: Text {
+            x: 18px;
+            y: 0px;
+            width: 160px;
+            height: parent.height;
+            text: "NIVORA";
+            color: Palette.textSecondary;
+            font-family: "Segoe UI Variable";
+            font-size: 11px;
+            font-weight: 650;
+            letter-spacing: 1px;
+            vertical-alignment: center;
         }
 
         Text {
-            x: 18px;
-            y: 62px;
+            x: parent.width - 180px;
+            y: 0px;
+            width: 164px;
+            height: parent.height;
             text: root.page-status;
-            color: #a7b0c0;
-            font-size: 12px;
+            color: Palette.textMuted;
+            font-family: "Segoe UI Variable";
+            font-size: 11px;
+            horizontal-alignment: right;
             vertical-alignment: center;
-        }
-        if root.is-loading: Rectangle {
-            x: 0px;
-            y: 98px;
-            width: parent.width;
-            height: 2px;
-            background: #79a7ff;
+            overflow: elide;
         }
     }
 
     Rectangle {
         x: 0px;
-        y: 100px;
+        y: 40px;
         width: parent.width;
-        height: parent.height - 100px;
-        background: #0c0f14;
+        height: 52px;
+        background: Palette.chrome;
+        border-width: 0px;
+
+        HorizontalLayout {
+            x: 14px;
+            y: 8px;
+            width: parent.width - 28px;
+            height: 36px;
+            spacing: 6px;
+
+            IconButton {
+                glyph: "☷";
+                selected: root.vertical-tabs;
+                clicked => { root.vertical-tabs = !root.vertical-tabs; }
+            }
+            Rectangle { width: 1px; height: 20px; background: Palette.border; }
+            IconButton {
+                glyph: "‹";
+                enabled: root.can-go-back;
+                clicked => { root.go-back(); }
+            }
+            IconButton {
+                glyph: "›";
+                enabled: root.can-go-forward;
+                clicked => { root.go-forward(); }
+            }
+            IconButton {
+                glyph: "↻";
+                clicked => { root.reload(); }
+            }
+            AddressField {
+                horizontal-stretch: 1;
+                text <=> root.address;
+                loading: root.is-loading;
+                accepted => { root.navigate(root.address); }
+            }
+            IconButton {
+                glyph: "⚙";
+                selected: root.settings-open;
+                clicked => { root.settings-open = !root.settings-open; }
+            }
+        }
     }
 
-    // This rectangle is a geometry anchor only. The actual page is a native
-    // Win32 child HWND created by WebKit's WinCairo WKView API.
-    Rectangle {
-        x: 12px;
-        y: 112px;
-        width: parent.width - 24px;
-        height: parent.height - 124px;
-        background: #111722;
-        border-radius: 8px;
+    if root.vertical-tabs: Rectangle {
+        x: 0px;
+        y: 92px;
+        width: 184px;
+        height: parent.height - 92px;
+        background: Palette.chrome;
+        border-width: 0px;
+
+        Rectangle {
+            x: 12px;
+            y: 12px;
+            width: parent.width - 24px;
+            height: 34px;
+            border-radius: 8px;
+            background: Palette.active;
+
+            Rectangle {
+                x: 10px;
+                y: 10px;
+                width: 12px;
+                height: 12px;
+                border-radius: 4px;
+                background: Palette.accent;
+            }
+            Text {
+                x: 31px;
+                y: 0px;
+                width: parent.width - 40px;
+                height: parent.height;
+                text: "Nivora";
+                color: Palette.textPrimary;
+                font-size: 12px;
+                vertical-alignment: center;
+            }
+        }
     }
-    browser_host := Rectangle {
-        x: 12px;
-        y: 112px;
-        width: parent.width - 24px;
-        height: parent.height - 124px;
+
+    Rectangle {
+        x: root.vertical-tabs ? 184px : 0px;
+        y: 92px;
+        width: parent.width - (root.vertical-tabs ? 184px : 0px);
+        height: parent.height - 92px;
+        background: Palette.page;
+    }
+
+    // Geometry anchor only. WebKit paints in its own native child HWND.
+    browser-host := Rectangle {
+        x: root.vertical-tabs ? 184px : 0px;
+        y: 92px;
+        width: parent.width - (root.vertical-tabs ? 184px : 0px);
+        height: parent.height - 92px;
         background: transparent;
-        border-radius: 8px;
-        // This rectangle is only a geometry anchor; it does not render web content.
+    }
+
+    // Compact appearance/layout popover. Its controls remain disabled while
+    // hidden, so it cannot intercept input from the WebKit child window.
+    Rectangle {
+        x: parent.width - 258px;
+        y: 82px;
+        width: 244px;
+        height: 116px;
+        border-radius: 10px;
+        border-width: 1px;
+        border-color: Palette.border;
+        background: Palette.surface;
+        opacity: root.settings-open ? 1 : 0;
+        animate opacity { duration: 160ms; }
+
+        Text {
+            x: 14px;
+            y: 10px;
+            width: 216px;
+            height: 20px;
+            text: "Quick settings";
+            color: Palette.textPrimary;
+            font-size: 12px;
+            font-weight: 600;
+            vertical-alignment: center;
+        }
+
+        Text {
+            x: 14px;
+            y: 40px;
+            width: 90px;
+            height: 28px;
+            text: "Appearance";
+            color: Palette.textSecondary;
+            font-size: 12px;
+            vertical-alignment: center;
+        }
+        TextButton {
+            x: 138px;
+            y: 40px;
+            label: Palette.dark ? "Dark" : "Light";
+            enabled: root.settings-open;
+            clicked => { Palette.dark = !Palette.dark; }
+        }
+
+        Text {
+            x: 14px;
+            y: 74px;
+            width: 110px;
+            height: 28px;
+            text: "Tab placement";
+            color: Palette.textSecondary;
+            font-size: 12px;
+            vertical-alignment: center;
+        }
+        TextButton {
+            x: 138px;
+            y: 74px;
+            label: root.vertical-tabs ? "Vertical" : "Top";
+            enabled: root.settings-open;
+            clicked => { root.vertical-tabs = !root.vertical-tabs; }
+        }
     }
 }

@@ -3,6 +3,7 @@ use std::{env, path::PathBuf};
 fn main() {
     println!("cargo:rerun-if-env-changed=WEBKIT_INCLUDE_DIR");
     println!("cargo:rerun-if-env-changed=WEBKIT_LIB_DIR");
+    println!("cargo:rerun-if-env-changed=NIVORA_SKIP_WEBKIT_NATIVE_FOR_CHECK");
     println!("cargo:rerun-if-changed=native/CMakeLists.txt");
     println!("cargo:rerun-if-changed=native/webkit_bridge.cpp");
 

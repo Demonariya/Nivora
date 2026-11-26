@@ -203,10 +203,11 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             NAVIGATION_FINISHED => {
                 sink.is_loading.set(false);
                 sink.progress.set(1.0);
-                if !value.is_empty() && !value.starts_with("about:") && !value.starts_with("file:") {
+                if !value.is_empty() && !value.starts_with("about:") && !value.starts_with("file:")
+                {
                     let title = sink.tab_title.borrow().clone();
-                    let title = (!title.trim().is_empty() && title != "New Tab")
-                        .then_some(title.as_str());
+                    let title =
+                        (!title.trim().is_empty() && title != "New Tab").then_some(title.as_str());
                     if let Err(error) = sink.history.borrow().record_visit(&value, title) {
                         eprintln!("Could not persist browser history: {error}");
                     } else {

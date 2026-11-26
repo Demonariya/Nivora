@@ -21,8 +21,8 @@ Read docs/webkit-wincairo.md. Run scripts/setup-windows.ps1, then scripts/build-
 
 The Windows build fails if required WebKit headers or the import library are missing. The non-Windows Rust path explicitly reports WinCairo as unavailable; it is not a substitute engine.
 
-## Verification status
+## Validation gate
 
-The workspace and bridge source are committed. Native MSVC compilation, actual WebKit2.dll export verification, HTTPS navigation, HWND z-order/focus/input, resize/DPI, and native teardown still require a Windows runner with the matching WebKit SDK. See docs/roadmap.md for the checklist.
+CI verifies Rust formatting, workspace compilation, and unit tests on Linux. Native MSVC compilation, actual WebKit2.dll export verification, HTTPS navigation, HWND z-order/focus/input, resize/DPI, and native teardown still require a Windows runner with the matching WebKit SDK. See docs/roadmap.md for the acceptance checklist.
 
 WebKit binaries are not vendored. Nivora's original source is MIT-licensed; third-party licenses remain applicable.

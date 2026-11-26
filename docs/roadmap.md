@@ -57,7 +57,7 @@ Status labels describe evidence in this repository, not intended work.
 ## Milestone 3 — product hardening
 
 - [ ] Crash recovery and process termination handling.
-- [ ] Keyboard shortcuts (Ctrl+T, Ctrl+W, Ctrl+Tab, Ctrl+Shift+Tab); native WebKit child-window focus routing still needs a Win32 implementation.
+- [x] Win32 thread-message keyboard shortcuts: Ctrl+T, Ctrl+W, Ctrl+Tab, Ctrl+Shift+Tab (native runtime validation pending).
 - [ ] Accessibility keyboard traversal tests.
 - [ ] Installer, signed releases, update channel.
 - [ ] Native Windows UI automation and end-to-end regression tests.

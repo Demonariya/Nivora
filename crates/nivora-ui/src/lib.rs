@@ -150,6 +150,9 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             let height = ui.get_browser_height().round() as i32;
 
             if !initialized.get() {
+                if width <= 0 || height <= 0 {
+                    return;
+                }
                 let handle = ui.window().window_handle();
                 let Ok(raw_handle) = handle.window_handle() else {
                     return;

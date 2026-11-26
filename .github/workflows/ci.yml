@@ -47,6 +47,23 @@ jobs:
       - name: Test workspace
         run: cargo test --workspace --locked
 
+  windows-rust-typecheck:
+    name: Windows Rust type-check (no native bridge compilation)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - name: Install Linux host dependencies for Slint build scripts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libfontconfig1-dev libfreetype6-dev libxkbcommon-dev libwayland-dev libx11-dev libx11-xcb-dev libxcb1-dev libxrandr-dev libxi-dev libxcursor-dev libxinerama-dev libxkbcommon-x11-dev libegl1-mesa-dev libgl1-mesa-dev
+      - name: Type-check Windows Rust code
+        env:
+          NIVORA_SKIP_WEBKIT_NATIVE_FOR_CHECK: "1"
+        run: cargo check --workspace --target x86_64-pc-windows-msvc --locked
+
   windows-native:
     name: Windows WinCairo integration (manual; requires pre-provisioned self-hosted SDK runner)
     if: ${{ github.event_name == 'workflow_dispatch' && vars.WEBKIT_SDK_READY == 'true' }}

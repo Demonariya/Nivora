@@ -14,6 +14,13 @@ fn main() {
         return;
     }
 
+    if env::var_os("NIVORA_SKIP_WEBKIT_NATIVE_FOR_CHECK").is_some() {
+        println!(
+            "cargo:warning=Rust cross-target type-check only: the WinCairo C++ bridge was NOT compiled or linked. Never set this variable for a native build."
+        );
+        return;
+    }
+
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
     assert_eq!(
         target_arch, "x86_64",

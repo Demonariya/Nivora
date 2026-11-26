@@ -53,7 +53,8 @@ export component MainWindow inherits Window {
                 clicked => { root.reload(); }
             }
             LineEdit {
-                width: 1*;
+                min-width: 180px;
+                horizontal-stretch: 1;
                 text <=> root.address;
                 placeholder-text: "Enter a URL or search";
                 accepted => { root.navigate(root.address); }

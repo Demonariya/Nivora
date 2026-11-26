@@ -226,6 +226,14 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                 };
                 *sink.tab_title.borrow_mut() = title.to_owned();
                 sink.title_dirty.set(true);
+                let url = sink.tab_url.borrow().clone();
+                if !url.is_empty() && !url.starts_with("about:") && !url.starts_with("file:") {
+                    if let Err(error) = sink.history.borrow().update_recent_title(&url, title) {
+                        eprintln!("Could not update browser history title: {error}");
+                    } else {
+                        sink.history_dirty.set(true);
+                    }
+                }
             }
             LOAD_PROGRESS_CHANGED => {
                 if progress.is_finite() {

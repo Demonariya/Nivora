@@ -46,3 +46,17 @@ The browser shell now has a real tab model backed by independent WebKit WinCairo
 ### Page metadata and loading feedback
 
 The WinCairo bridge subscribes to WebKit page-load state changes. Main-page title updates are stored per tab and reflected in the tab strip, including updates received while a tab is in the background. The toolbar loading indicator uses WebKit's estimated page-load progress rather than a simulated timer. Favicon retrieval is not included yet because it requires a separately verified icon/resource API path for the selected WinCairo SDK.
+
+
+### Keyboard shortcuts
+
+Nivora registers a UI-thread-scoped Win32 message hook so browser shortcuts remain available while a native WebKit child window owns keyboard focus:
+
+| Shortcut | Action |
+| --- | --- |
+| Ctrl+T | Open a new tab |
+| Ctrl+W | Close the active tab |
+| Ctrl+Tab | Switch to the next tab |
+| Ctrl+Shift+Tab | Switch to the previous tab |
+
+The hook consumes only these browser shortcuts and is removed before its callback context is released. Native WinCairo runtime behavior still requires validation on a Windows machine with the matching SDK.

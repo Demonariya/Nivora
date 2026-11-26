@@ -55,6 +55,10 @@ impl WebKitEngine {
         self.view.resize(x, y, width, height);
     }
 
+    pub fn set_visible(&mut self, visible: bool) {
+        self.view.set_visible(visible);
+    }
+
     pub fn can_go_back(&self) -> bool {
         self.view.can_go_back()
     }

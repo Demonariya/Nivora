@@ -36,6 +36,7 @@ mod native {
             width: i32,
             height: i32,
         );
+        pub fn nivora_webkit_view_set_visible(view: *mut c_void, visible: bool);
         pub fn nivora_webkit_view_navigate(view: *mut c_void, address: *const c_char);
         pub fn nivora_webkit_view_go_back(view: *mut c_void);
         pub fn nivora_webkit_view_go_forward(view: *mut c_void);
@@ -99,6 +100,15 @@ impl WebKitView {
 
     #[cfg(not(windows))]
     pub fn resize(&mut self, _x: i32, _y: i32, _width: i32, _height: i32) {}
+
+    #[cfg(windows)]
+    pub fn set_visible(&mut self, visible: bool) {
+        // SAFETY: raw is owned by self and valid until Drop.
+        unsafe { native::nivora_webkit_view_set_visible(self.raw.as_ptr(), visible) };
+    }
+
+    #[cfg(not(windows))]
+    pub fn set_visible(&mut self, _visible: bool) {}
 
     pub fn navigate(&mut self, address: &str) -> Result<(), std::ffi::NulError> {
         let address = std::ffi::CString::new(address)?;

@@ -200,6 +200,13 @@ extern "C" void nivora_webkit_view_resize(NivoraWebKitView* self, int x, int y, 
         SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
 }
 
+extern "C" void nivora_webkit_view_set_visible(NivoraWebKitView* self, bool visible)
+{
+    if (!self || !self->view || !self->child_window || !IsWindow(self->child_window))
+        return;
+    ShowWindow(self->child_window, visible ? SW_SHOWNA : SW_HIDE);
+}
+
 extern "C" void nivora_webkit_view_navigate(NivoraWebKitView* self, const char* address)
 {
     if (!self || !self->page || !address || !*address)

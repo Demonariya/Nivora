@@ -96,6 +96,7 @@ component TextButton inherits Rectangle {
 component TabItem inherits Rectangle {
     in property <string> title;
     in property <bool> active: true;
+    callback clicked();
 
     accessible-role: tab;
     accessible-label: root.title;
@@ -126,6 +127,9 @@ component TabItem inherits Rectangle {
         font-size: 12px;
         vertical-alignment: center;
         overflow: elide;
+    }
+    TouchArea {
+        clicked => { root.clicked(); }
     }
 }
 
@@ -200,6 +204,8 @@ export component MainWindow inherits Window {
     in-out property <bool> can-go-back: false;
     in-out property <bool> can-go-forward: false;
     in-out property <bool> is-loading: false;
+    in property <[string]> tab-titles;
+    in property <int> active-tab-index: 0;
 
     property <bool> vertical-tabs: false;
     property <bool> settings-open: false;
@@ -213,6 +219,9 @@ export component MainWindow inherits Window {
     callback go-back();
     callback go-forward();
     callback reload();
+    callback new-tab();
+    callback close-active-tab();
+    callback select-tab(int);
 
     Rectangle {
         x: 0px;
@@ -221,11 +230,32 @@ export component MainWindow inherits Window {
         height: 40px;
         background: Palette.chrome;
 
-        if !root.vertical-tabs: TabItem {
-            x: 14px;
+        if !root.vertical-tabs: HorizontalLayout {
+            x: 12px;
             y: 5px;
-            title: "Nivora";
-            active: true;
+            width: parent.width - 112px;
+            height: 30px;
+            spacing: 4px;
+            for title[i] in root.tab-titles: TabItem {
+                title: title;
+                active: i == root.active-tab-index;
+                clicked => { root.select-tab(i); }
+            }
+        }
+
+        IconButton {
+            x: parent.width - 82px;
+            y: 3px;
+            glyph: "×";
+            description: "Close active tab";
+            clicked => { root.close-active-tab(); }
+        }
+        IconButton {
+            x: parent.width - 44px;
+            y: 3px;
+            glyph: "+";
+            description: "New tab";
+            clicked => { root.new-tab(); }
         }
 
         if root.vertical-tabs: Text {
@@ -233,7 +263,7 @@ export component MainWindow inherits Window {
             y: 0px;
             width: 160px;
             height: parent.height;
-            text: "NIVORA";
+            text: "TABS";
             color: Palette.textSecondary;
             font-family: "Segoe UI Variable";
             font-size: 11px;
@@ -319,32 +349,20 @@ export component MainWindow inherits Window {
         background: Palette.chrome;
         border-width: 0px;
 
-        Rectangle {
+        for title[i] in root.tab-titles: TabItem {
+            x: 8px;
+            y: 12px + i * 38px;
+            width: parent.width - 16px;
+            title: title;
+            active: i == root.active-tab-index;
+            clicked => { root.select-tab(i); }
+        }
+        IconButton {
             x: 12px;
-            y: 12px;
-            width: parent.width - 24px;
-            height: 34px;
-            border-radius: 8px;
-            background: Palette.active;
-
-            Rectangle {
-                x: 10px;
-                y: 10px;
-                width: 12px;
-                height: 12px;
-                border-radius: 4px;
-                background: Palette.accent;
-            }
-            Text {
-                x: 31px;
-                y: 0px;
-                width: parent.width - 40px;
-                height: parent.height;
-                text: "Nivora";
-                color: Palette.textPrimary;
-                font-size: 12px;
-                vertical-alignment: center;
-            }
+            y: parent.height - 46px;
+            glyph: "+";
+            description: "New tab";
+            clicked => { root.new-tab(); }
         }
     }
 

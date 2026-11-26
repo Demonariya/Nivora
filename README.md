@@ -23,6 +23,6 @@ The Windows build fails if required WebKit headers or the import library are mis
 
 ## Validation gate
 
-CI verifies Rust formatting, workspace compilation, and unit tests on Linux. Native MSVC compilation, actual WebKit2.dll export verification, HTTPS navigation, HWND z-order/focus/input, resize/DPI, and native teardown still require a Windows runner with the matching WebKit SDK. See docs/roadmap.md for the acceptance checklist.
+CI installs Slint's Linux native build dependencies, verifies Rust formatting, resolves Cargo.lock, checks the workspace, and runs unit tests. Native MSVC compilation, actual WebKit2.dll export verification, HTTPS navigation, HWND z-order/focus/input, resize/DPI, and native teardown still require a Windows runner with the matching WebKit SDK. See docs/roadmap.md for the acceptance checklist.
 
 WebKit binaries are not vendored. Nivora's original source is MIT-licensed; third-party licenses remain applicable.

@@ -193,12 +193,12 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
     {
         let browser = browser.clone();
         let active_tab_id = active_tab_id.clone();
-        let ui = ui.as_weak();
+        let ui_weak = ui.as_weak();
         ui.on_new_tab(move || {
             let mut state = browser.borrow_mut();
             state.open_tab();
             active_tab_id.set(state.active_tab().id);
-            if let Some(ui) = ui.upgrade() {
+            if let Some(ui) = ui_weak.upgrade() {
                 sync_ui(&ui, &state);
                 ui.set_page_status("New tab".into());
             }
@@ -207,7 +207,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
     {
         let browser = browser.clone();
         let active_tab_id = active_tab_id.clone();
-        let ui = ui.as_weak();
+        let ui_weak = ui.as_weak();
         ui.on_select_tab(move |index| {
             let mut state = browser.borrow_mut();
             if index < 0 || index as usize >= state.tabs.len() {
@@ -220,7 +220,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                 engine.set_visible(true);
                 engine.focus();
             }
-            if let Some(ui) = ui.upgrade() {
+            if let Some(ui) = ui_weak.upgrade() {
                 sync_ui(&ui, &state);
                 ui.set_page_status("Tab switched".into());
             }
@@ -229,7 +229,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
     {
         let browser = browser.clone();
         let active_tab_id = active_tab_id.clone();
-        let ui = ui.as_weak();
+        let ui_weak = ui.as_weak();
         ui.on_close_active_tab(move || {
             let mut state = browser.borrow_mut();
             if state.tabs.len() == 1 {
@@ -248,7 +248,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                 state.active = index.min(state.tabs.len() - 1);
             }
             active_tab_id.set(state.active_tab().id);
-            if let Some(ui) = ui.upgrade() {
+            if let Some(ui) = ui_weak.upgrade() {
                 sync_ui(&ui, &state);
                 ui.set_page_status("Tab closed".into());
             }

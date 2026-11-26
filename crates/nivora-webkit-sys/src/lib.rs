@@ -19,7 +19,7 @@ pub type KeyboardShortcutCallback = unsafe extern "C" fn(*mut c_void, i32);
 
 #[cfg(windows)]
 mod native {
-    use super::{EventCallback, c_char, c_void};
+    use super::{EventCallback, KeyboardShortcutCallback, c_char, c_void};
 
     unsafe extern "C" {
         pub fn nivora_webkit_view_create(

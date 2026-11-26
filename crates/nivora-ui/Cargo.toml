@@ -14,6 +14,7 @@ raw-window-handle-06 = { package = "raw-window-handle", version = "0.6" }
 
 [target.'cfg(windows)'.dependencies]
 nivora-engine.workspace = true
+nivora-storage.workspace = true
 
 [build-dependencies]
 slint-build = "1.19.1"

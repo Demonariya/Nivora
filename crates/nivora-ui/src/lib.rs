@@ -325,7 +325,10 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
         let browser = browser.clone();
         ui.on_create_tab_drag_data(move |index| {
             let state = browser.borrow();
-            let Some(tab) = usize::try_from(index).ok().and_then(|index| state.tabs.get(index)) else {
+            let Some(tab) = usize::try_from(index)
+                .ok()
+                .and_then(|index| state.tabs.get(index))
+            else {
                 return slint::DataTransfer::default();
             };
             let mut transfer = slint::DataTransfer::default();
@@ -358,7 +361,11 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             let active_id = state.active_tab().id;
             let tab = state.tabs.remove(source_index);
             state.tabs.insert(target_index, tab);
-            state.active = state.tabs.iter().position(|tab| tab.id == active_id).unwrap_or(0);
+            state.active = state
+                .tabs
+                .iter()
+                .position(|tab| tab.id == active_id)
+                .unwrap_or(0);
             let active = state.active;
             activate_tab(&mut state, active);
             active_tab_id.set(state.active_tab().id);

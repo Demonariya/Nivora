@@ -36,7 +36,9 @@ jobs:
           git add crates Cargo.lock
           if ! git diff --cached --quiet; then
             git commit -m "build: lock Rust dependencies and format source"
-            git push
+            git fetch origin main
+            git rebase origin/main
+            git push origin HEAD:main
           fi
       - name: Verify formatting
         run: cargo fmt --all --check

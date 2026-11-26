@@ -1,6 +1,6 @@
 //! Browser-engine facade. The only production engine in this workspace is WebKit WinCairo.
 
-use std::ffi::{c_char, c_void, CStr};
+use std::ffi::{CStr, c_char, c_void};
 
 use nivora_webkit_sys::WebKitView;
 pub use nivora_webkit_sys::{
@@ -114,8 +114,14 @@ mod tests {
 
     #[test]
     fn preserves_explicit_schemes() {
-        assert_eq!(normalize_address("https://example.com"), "https://example.com");
-        assert_eq!(normalize_address("http://example.com"), "http://example.com");
+        assert_eq!(
+            normalize_address("https://example.com"),
+            "https://example.com"
+        );
+        assert_eq!(
+            normalize_address("http://example.com"),
+            "http://example.com"
+        );
     }
 
     #[test]

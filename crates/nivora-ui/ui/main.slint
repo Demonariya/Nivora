@@ -14,10 +14,10 @@ export component MainWindow inherits Window {
     in-out property <bool> can-go-forward: false;
     in-out property <bool> is-loading: false;
 
-    out property <float> browser-x: browser-host.x / 1px;
-    out property <float> browser-y: browser-host.y / 1px;
-    out property <float> browser-width: browser-host.width / 1px;
-    out property <float> browser-height: browser-host.height / 1px;
+    out property <length> browser-x: browser_host.x;
+    out property <length> browser-y: browser_host.y;
+    out property <length> browser-width: browser_host.width;
+    out property <length> browser-height: browser_host.height;
 
     callback navigate(string);
     callback go-back();
@@ -100,8 +100,7 @@ export component MainWindow inherits Window {
         background: #111722;
         border-radius: 8px;
     }
-    Rectangle {
-        id: browser-host;
+    browser_host := Rectangle {
         x: 12px;
         y: 112px;
         width: parent.width - 24px;

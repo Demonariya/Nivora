@@ -45,7 +45,7 @@ jobs:
       - name: Type-check Windows Rust code
         env:
           NIVORA_SKIP_WEBKIT_NATIVE_FOR_CHECK: "1"
-        run: cargo check --workspace --target x86_64-pc-windows-msvc --locked
+        run: cargo check --workspace --exclude nivora-storage --target x86_64-pc-windows-msvc --locked
 
   windows-native:
     name: Windows WinCairo integration (manual; requires pre-provisioned self-hosted SDK runner)
@@ -61,8 +61,8 @@ jobs:
       - name: Validate WebKit SDK environment
         shell: pwsh
         run: |
-          if (-not $env:WEBKIT_INCLUDE_DIR -or -not $env:WEBKIT_LIB_DIR) {
-            throw 'WEBKIT_INCLUDE_DIR and WEBKIT_LIB_DIR must be provisioned by the runner.'
+          if (-not $env:WEBKIT_INCLUDE_DIR -or -not $env:WEBKIT_LIB_DIR -or -not $env:WEBKIT_RUNTIME_DIR) {
+            throw 'WEBKIT_INCLUDE_DIR, WEBKIT_LIB_DIR, and WEBKIT_RUNTIME_DIR must be provisioned by the runner.'
           }
           if (-not (Test-Path (Join-Path $env:WEBKIT_INCLUDE_DIR 'WebKit/WKView.h'))) {
             throw 'WinCairo public headers are missing.'
@@ -70,7 +70,12 @@ jobs:
           if (-not (Test-Path (Join-Path $env:WEBKIT_LIB_DIR 'WebKit2.lib'))) {
             throw 'WebKit2.lib is missing.'
           }
+      - name: Verify actual WebKit DLL exports
+        shell: pwsh
+        run: ./scripts/verify-webkit-exports.ps1 -WebKitDll (Join-Path $env:WEBKIT_RUNTIME_DIR 'WebKit2.dll')
       - name: Format
         run: cargo fmt --all --check
+      - name: Check workspace
+        run: cargo check --workspace --locked
       - name: Compile native application
         run: cargo build --release -p nivora-app

@@ -25,8 +25,8 @@ pub fn run() -> Result<(), Box<dyn Error>> {
 #[cfg(windows)]
 fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
     use nivora_engine::{
-        NAVIGATION_COMMITTED, NAVIGATION_FAILED, NAVIGATION_FINISHED, NAVIGATION_STARTED,
-        WebKitEngine, callback_url,
+        callback_url, WebKitEngine, NAVIGATION_COMMITTED, NAVIGATION_FAILED,
+        NAVIGATION_FINISHED, NAVIGATION_STARTED,
     };
     use raw_window_handle_06::{HasWindowHandle, RawWindowHandle};
     use slint::{Timer, TimerMode};
@@ -76,9 +76,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             }
             NAVIGATION_FAILED => {
                 ui.set_is_loading(false);
-                ui.set_page_status(
-                    "Navigation failed. Check the address or WebKit network process.",
-                );
+                ui.set_page_status("Navigation failed. Check the address or WebKit network process.");
             }
             _ => {}
         }
@@ -141,58 +139,65 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
         let ui = ui.clone_strong();
         let browser = browser.clone();
         let initialized = initialized.clone();
-        timer.start(TimerMode::Repeated, Duration::from_millis(80), move || {
-            let scale = ui.window().scale_factor();
-            let x = (ui.get_browser_x() * scale).round() as i32;
-            let y = (ui.get_browser_y() * scale).round() as i32;
-            let width = (ui.get_browser_width() * scale).round() as i32;
-            let height = (ui.get_browser_height() * scale).round() as i32;
+        timer.start(
+            TimerMode::Repeated,
+            Duration::from_millis(80),
+            move || {
+                // Slint maps length properties to physical pixels in Rust,
+                // applying the window's scale factor exactly once.
+                let x = ui.get_browser_x().round() as i32;
+                let y = ui.get_browser_y().round() as i32;
+                let width = ui.get_browser_width().round() as i32;
+                let height = ui.get_browser_height().round() as i32;
 
-            if !initialized.get() {
-                let handle = ui.window().window_handle();
-                let Ok(raw_handle) = handle.window_handle() else {
-                    return;
-                };
-                let RawWindowHandle::Win32(win32) = raw_handle.as_raw() else {
-                    ui.set_page_status(
-                        "Slint did not provide a Win32 HWND; WebKit embedding is unavailable.",
-                    );
-                    return;
-                };
-                let hwnd = win32.hwnd.get() as *mut c_void;
-                // SAFETY: Slint's Win32 backend owns this HWND and this timer
-                // runs on the Slint UI thread after the window has been shown.
-                match unsafe {
-                    WebKitEngine::new(
-                        hwnd,
-                        (x, y, width, height),
-                        on_navigation_event,
-                        event_context,
-                    )
-                } {
-                    Ok(mut engine) => {
-                        if let Err(error) = engine.navigate(ui.get_address().as_str()) {
-                            ui.set_page_status(
-                                format!("Initial navigation failed: {error}").into(),
-                            );
-                        } else {
-                            ui.set_page_status("WebKit view created; loading initial page…");
+                if !initialized.get() {
+                    let handle = ui.window().window_handle();
+                    let Ok(raw_handle) = handle.window_handle() else {
+                        return;
+                    };
+                    let RawWindowHandle::Win32(win32) = raw_handle.as_raw() else {
+                        ui.set_page_status(
+                            "Slint did not provide a Win32 HWND; WebKit embedding is unavailable.",
+                        );
+                        return;
+                    };
+                    let hwnd = win32.hwnd.get() as *mut c_void;
+                    // SAFETY: Slint's Win32 backend owns this HWND and this timer
+                    // runs on the Slint UI thread after the window has been shown.
+                    match unsafe {
+                        WebKitEngine::new(
+                            hwnd,
+                            (x, y, width, height),
+                            on_navigation_event,
+                            event_context,
+                        )
+                    } {
+                        Ok(mut engine) => {
+                            if let Err(error) = engine.navigate(ui.get_address().as_str()) {
+                                ui.set_page_status(
+                                    format!("Initial navigation failed: {error}").into(),
+                                );
+                            } else {
+                                ui.set_page_status("WebKit view created; loading initial page…");
+                            }
+                            engine.focus();
+                            *browser.borrow_mut() = Some(engine);
+                            initialized.set(true);
                         }
-                        engine.focus();
-                        *browser.borrow_mut() = Some(engine);
-                        initialized.set(true);
+                        Err(error) => {
+                            ui.set_page_status(
+                                format!("WebKit initialization failed: {error}").into(),
+                            );
+                            initialized.set(true);
+                        }
                     }
-                    Err(error) => {
-                        ui.set_page_status(format!("WebKit initialization failed: {error}").into());
-                        initialized.set(true);
-                    }
+                } else if let Some(engine) = browser.borrow_mut().as_mut() {
+                    engine.resize(x, y, width, height);
+                    ui.set_can_go_back(engine.can_go_back());
+                    ui.set_can_go_forward(engine.can_go_forward());
                 }
-            } else if let Some(engine) = browser.borrow_mut().as_mut() {
-                engine.resize(x, y, width, height);
-                ui.set_can_go_back(engine.can_go_back());
-                ui.set_can_go_forward(engine.can_go_forward());
-            }
-        });
+            },
+        );
     }
 
     let result = ui.run();

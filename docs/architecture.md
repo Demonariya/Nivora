@@ -12,15 +12,15 @@ The C++ bridge owns the WebKit references and navigation client structure. Rust 
 
 The bridge calls WKPageConfigurationCreate, WKViewCreate, WKViewGetPage, and WKViewGetWindow. It registers a WKPageNavigationClientV0 using WKPageSetPageNavigationClient, then calls WKViewSetParentWindow, WKViewWindowAncestryDidChange, and WKViewSetIsInWindow. The returned child HWND is positioned with SetWindowPos.
 
-Navigation uses WKURLCreateWithUTF8CString and WKPageLoadURL. Back/Forward and state use WKPageGoBack, WKPageGoForward, WKPageCanGoBack, and WKPageCanGoForward. Reload uses WKPageReload. Temporary WK references are released with WKRelease. Shutdown calls WKPageClose and releases WKView before freeing the bridge.
+Navigation uses WKURLCreateWithUTF8CString and WKPageLoadURL. Back/Forward and state use WKPageGoBack, WKPageGoForward, WKPageCanGoBack, and WKPageCanGoForward. Reload uses WKPageReload. Temporary WK references are released with WKRelease. On teardown the bridge marks the view out-of-window, closes the page, releases the view, and frees its bridge object.
 
 ## Slint HWND integration
 
-Slint exposes Window::window_handle() behind raw-window-handle-06. Its documentation warns that the handle may not be available until after the native window is created, so Nivora retries from a Slint event-loop timer after show().
+Slint exposes Window::window_handle() behind raw-window-handle-06. Its documentation notes that the handle may not be available until after the native window is created, so Nivora starts its timer before ComponentHandle::run() and retries after the window has been shown.
 
-Slint geometry is logical pixels. Nivora multiplies the browser host rectangle by Window::scale_factor() and uses physical pixels in SetWindowPos. A timer synchronizes bounds and Back/Forward state. The child HWND receives native Windows input; the address bar and toolbar remain Slint controls.
+The browser anchor exposes its bounds as Slint length properties. Slint maps those logical lengths to physical-pixel f32 values in Rust, applying the display scale factor automatically. Nivora passes those values directly to SetWindowPos and does not multiply by scale_factor a second time. A timer synchronizes bounds and Back/Forward state.
 
-This API-level integration does not prove renderer composition or z-order behavior. Windows acceptance tests must verify clipping, z-order, focus, keyboard/mouse input, DPI changes, minimize/restore, and teardown. If a renderer cannot host a child HWND correctly, the appropriate fallback is a custom Slint Platform/WindowAdapter using a Win32 top-level window, not a different browser engine.
+The child HWND receives native Windows input; the address bar and toolbar remain Slint controls. This API-level integration does not prove renderer composition or z-order behavior. Windows acceptance tests must verify clipping, z-order, focus, keyboard/mouse input, DPI changes, minimize/restore, and teardown. If a renderer cannot host a child HWND correctly, the appropriate fallback is a custom Slint Platform/WindowAdapter using a Win32 top-level window, not a different browser engine.
 
 ## Threading and lifetime
 

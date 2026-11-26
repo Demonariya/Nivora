@@ -28,7 +28,13 @@ mod native {
             callback_context: *mut c_void,
         ) -> *mut c_void;
         pub fn nivora_webkit_view_destroy(view: *mut c_void);
-        pub fn nivora_webkit_view_resize(view: *mut c_void, x: i32, y: i32, width: i32, height: i32);
+        pub fn nivora_webkit_view_resize(
+            view: *mut c_void,
+            x: i32,
+            y: i32,
+            width: i32,
+            height: i32,
+        );
         pub fn nivora_webkit_view_navigate(view: *mut c_void, address: *const c_char);
         pub fn nivora_webkit_view_go_back(view: *mut c_void);
         pub fn nivora_webkit_view_go_forward(view: *mut c_void);
@@ -68,7 +74,9 @@ impl WebKitView {
                 callback_context,
             )
         };
-        NonNull::new(raw).map(|raw| Self { raw }).ok_or("WKViewCreate failed")
+        NonNull::new(raw)
+            .map(|raw| Self { raw })
+            .ok_or("WKViewCreate failed")
     }
 
     #[cfg(not(windows))]
@@ -107,6 +115,7 @@ impl WebKitView {
         // SAFETY: raw is owned by self and valid until Drop.
         unsafe { native::nivora_webkit_view_go_back(self.raw.as_ptr()) };
     }
+
     #[cfg(not(windows))]
     pub fn go_back(&mut self) {}
 
@@ -115,6 +124,7 @@ impl WebKitView {
         // SAFETY: raw is owned by self and valid until Drop.
         unsafe { native::nivora_webkit_view_go_forward(self.raw.as_ptr()) };
     }
+
     #[cfg(not(windows))]
     pub fn go_forward(&mut self) {}
 
@@ -123,6 +133,7 @@ impl WebKitView {
         // SAFETY: raw is owned by self and valid until Drop.
         unsafe { native::nivora_webkit_view_reload(self.raw.as_ptr()) };
     }
+
     #[cfg(not(windows))]
     pub fn reload(&mut self) {}
 
@@ -131,22 +142,29 @@ impl WebKitView {
         // SAFETY: raw is owned by self and valid until Drop.
         unsafe { native::nivora_webkit_view_can_go_back(self.raw.as_ptr()) }
     }
+
     #[cfg(not(windows))]
-    pub fn can_go_back(&self) -> bool { false }
+    pub fn can_go_back(&self) -> bool {
+        false
+    }
 
     #[cfg(windows)]
     pub fn can_go_forward(&self) -> bool {
         // SAFETY: raw is owned by self and valid until Drop.
         unsafe { native::nivora_webkit_view_can_go_forward(self.raw.as_ptr()) }
     }
+
     #[cfg(not(windows))]
-    pub fn can_go_forward(&self) -> bool { false }
+    pub fn can_go_forward(&self) -> bool {
+        false
+    }
 
     #[cfg(windows)]
     pub fn focus(&mut self) {
         // SAFETY: raw is owned by self and valid until Drop.
         unsafe { native::nivora_webkit_view_focus(self.raw.as_ptr()) };
     }
+
     #[cfg(not(windows))]
     pub fn focus(&mut self) {}
 }

@@ -2,10 +2,10 @@
 
 use std::ffi::{c_char, c_void, CStr};
 
+use nivora_webkit_sys::WebKitView;
 pub use nivora_webkit_sys::{
     NAVIGATION_COMMITTED, NAVIGATION_FAILED, NAVIGATION_FINISHED, NAVIGATION_STARTED,
 };
-use nivora_webkit_sys::WebKitView;
 
 pub type NavigationCallback = unsafe extern "C" fn(*mut c_void, i32, *const c_char);
 
@@ -30,18 +30,38 @@ impl WebKitEngine {
 
     pub fn navigate(&mut self, address: &str) -> Result<(), String> {
         let address = normalize_address(address);
-        self.view.navigate(&address).map_err(|error| error.to_string())
+        self.view
+            .navigate(&address)
+            .map_err(|error| error.to_string())
     }
 
-    pub fn back(&mut self) { self.view.go_back(); }
-    pub fn forward(&mut self) { self.view.go_forward(); }
-    pub fn reload(&mut self) { self.view.reload(); }
-    pub fn focus(&mut self) { self.view.focus(); }
+    pub fn back(&mut self) {
+        self.view.go_back();
+    }
+
+    pub fn forward(&mut self) {
+        self.view.go_forward();
+    }
+
+    pub fn reload(&mut self) {
+        self.view.reload();
+    }
+
+    pub fn focus(&mut self) {
+        self.view.focus();
+    }
+
     pub fn resize(&mut self, x: i32, y: i32, width: i32, height: i32) {
         self.view.resize(x, y, width, height);
     }
-    pub fn can_go_back(&self) -> bool { self.view.can_go_back() }
-    pub fn can_go_forward(&self) -> bool { self.view.can_go_forward() }
+
+    pub fn can_go_back(&self) -> bool {
+        self.view.can_go_back()
+    }
+
+    pub fn can_go_forward(&self) -> bool {
+        self.view.can_go_forward()
+    }
 }
 
 pub fn normalize_address(input: &str) -> String {
@@ -49,7 +69,11 @@ pub fn normalize_address(input: &str) -> String {
     if value.is_empty() {
         return "about:blank".to_owned();
     }
-    if value.starts_with("https://") || value.starts_with("http://") || value.starts_with("file://") || value.starts_with("about:") {
+    if value.starts_with("https://")
+        || value.starts_with("http://")
+        || value.starts_with("file://")
+        || value.starts_with("about:")
+    {
         return value.to_owned();
     }
     if value.contains(' ') || !value.contains('.') {
@@ -63,7 +87,9 @@ pub fn callback_url(url: *const c_char) -> String {
         return String::new();
     }
     // SAFETY: the native callback guarantees a NUL-terminated URL valid for this call.
-    unsafe { CStr::from_ptr(url) }.to_string_lossy().into_owned()
+    unsafe { CStr::from_ptr(url) }
+        .to_string_lossy()
+        .into_owned()
 }
 
 #[cfg(test)]
@@ -83,6 +109,9 @@ mod tests {
 
     #[test]
     fn turns_plain_text_into_search() {
-        assert_eq!(normalize_address("rust browser"), "https://www.google.com/search?q=rust+browser");
+        assert_eq!(
+            normalize_address("rust browser"),
+            "https://www.google.com/search?q=rust+browser"
+        );
     }
 }

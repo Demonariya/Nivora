@@ -38,7 +38,11 @@ impl TabManager {
         };
         self.tabs.remove(index);
         if self.active == Some(id) {
-            self.active = self.tabs.get(index).or_else(|| self.tabs.last()).map(|tab| tab.id);
+            self.active = self
+                .tabs
+                .get(index)
+                .or_else(|| self.tabs.last())
+                .map(|tab| tab.id);
         }
         true
     }
@@ -47,8 +51,13 @@ impl TabManager {
         self.tabs.iter().find(|tab| Some(tab.id) == self.active)
     }
 
-    pub fn len(&self) -> usize { self.tabs.len() }
-    pub fn is_empty(&self) -> bool { self.tabs.is_empty() }
+    pub fn len(&self) -> usize {
+        self.tabs.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.tabs.is_empty()
+    }
 }
 
 #[cfg(test)]

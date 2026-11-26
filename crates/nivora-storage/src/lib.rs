@@ -71,7 +71,9 @@ mod tests {
     #[test]
     fn persists_and_reads_history_rows() {
         let storage = Storage::in_memory().expect("in-memory database");
-        storage.record_visit("https://example.com", Some("Example")).unwrap();
+        storage
+            .record_visit("https://example.com", Some("Example"))
+            .unwrap();
         let entries = storage.recent_history(10).unwrap();
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].url, "https://example.com");

@@ -12,7 +12,9 @@ pub fn run() -> Result<(), Box<dyn Error>> {
 
     #[cfg(not(windows))]
     {
-        ui.set_page_status("WinCairo WebKit is Windows-only. Run Nivora on Windows with WEBKIT_INCLUDE_DIR and WEBKIT_LIB_DIR configured.");
+        ui.set_page_status(
+            "WinCairo WebKit is Windows-only. Run Nivora on Windows with WEBKIT_INCLUDE_DIR and WEBKIT_LIB_DIR configured.",
+        );
         ui.run()?;
     }
 
@@ -21,23 +23,37 @@ pub fn run() -> Result<(), Box<dyn Error>> {
 
 #[cfg(windows)]
 fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
-    use nivora_engine::{WebKitEngine, callback_url, NAVIGATION_COMMITTED, NAVIGATION_FAILED, NAVIGATION_FINISHED, NAVIGATION_STARTED};
+    use nivora_engine::{
+        callback_url, WebKitEngine, NAVIGATION_COMMITTED, NAVIGATION_FAILED,
+        NAVIGATION_FINISHED, NAVIGATION_STARTED,
+    };
     use raw_window_handle_06::{HasWindowHandle, RawWindowHandle};
     use slint::{Timer, TimerMode};
-    use std::{cell::{Cell, RefCell}, ffi::c_void, rc::Rc, time::Duration};
+    use std::{
+        cell::{Cell, RefCell},
+        ffi::c_void,
+        rc::Rc,
+        time::Duration,
+    };
 
     struct EventSink {
         ui: slint::Weak<MainWindow>,
     }
 
-    unsafe extern "C" fn on_navigation_event(context: *mut c_void, kind: i32, url: *const std::ffi::c_char) {
+    unsafe extern "C" fn on_navigation_event(
+        context: *mut c_void,
+        kind: i32,
+        url: *const std::ffi::c_char,
+    ) {
         if context.is_null() {
             return;
         }
         // SAFETY: context points to the EventSink Box kept alive until after the
         // WebKit view is explicitly destroyed on the same UI thread.
         let sink = unsafe { &*(context.cast::<EventSink>()) };
-        let Some(ui) = sink.ui.upgrade() else { return; };
+        let Some(ui) = sink.ui.upgrade() else {
+            return;
+        };
         let url = callback_url(url);
         match kind {
             NAVIGATION_STARTED => {
@@ -45,12 +61,16 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                 ui.set_page_status("Loading…");
             }
             NAVIGATION_COMMITTED => {
-                if !url.is_empty() { ui.set_address(url.into()); }
+                if !url.is_empty() {
+                    ui.set_address(url.into());
+                }
                 ui.set_page_status("Connected");
             }
             NAVIGATION_FINISHED => {
                 ui.set_is_loading(false);
-                if !url.is_empty() { ui.set_address(url.into()); }
+                if !url.is_empty() {
+                    ui.set_address(url.into());
+                }
                 ui.set_page_status("Ready");
             }
             NAVIGATION_FAILED => {
@@ -64,7 +84,9 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
     let browser: Rc<RefCell<Option<WebKitEngine>>> = Rc::new(RefCell::new(None));
     let initialized = Rc::new(Cell::new(false));
     let event_sink = Box::new(EventSink { ui: ui.as_weak() });
-    let event_context = (&*event_sink as *const EventSink).cast_mut().cast::<c_void>();
+    let event_context = (&*event_sink as *const EventSink)
+        .cast_mut()
+        .cast::<c_void>();
 
     {
         let browser = browser.clone();
@@ -79,19 +101,25 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
     {
         let browser = browser.clone();
         ui.on_go_back(move || {
-            if let Some(engine) = browser.borrow_mut().as_mut() { engine.back(); }
+            if let Some(engine) = browser.borrow_mut().as_mut() {
+                engine.back();
+            }
         });
     }
     {
         let browser = browser.clone();
         ui.on_go_forward(move || {
-            if let Some(engine) = browser.borrow_mut().as_mut() { engine.forward(); }
+            if let Some(engine) = browser.borrow_mut().as_mut() {
+                engine.forward();
+            }
         });
     }
     {
         let browser = browser.clone();
         ui.on_reload(move || {
-            if let Some(engine) = browser.borrow_mut().as_mut() { engine.reload(); }
+            if let Some(engine) = browser.borrow_mut().as_mut() {
+                engine.reload();
+            }
         });
     }
 
@@ -111,45 +139,64 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
         let ui = ui.clone();
         let browser = browser.clone();
         let initialized = initialized.clone();
-        timer.start(TimerMode::Repeated, Duration::from_millis(80), move || {
-            let scale = ui.window().scale_factor();
-            let x = (ui.get_browser_x() * scale).round() as i32;
-            let y = (ui.get_browser_y() * scale).round() as i32;
-            let width = (ui.get_browser_width() * scale).round() as i32;
-            let height = (ui.get_browser_height() * scale).round() as i32;
+        timer.start(
+            TimerMode::Repeated,
+            Duration::from_millis(80),
+            move || {
+                let scale = ui.window().scale_factor();
+                let x = (ui.get_browser_x() * scale).round() as i32;
+                let y = (ui.get_browser_y() * scale).round() as i32;
+                let width = (ui.get_browser_width() * scale).round() as i32;
+                let height = (ui.get_browser_height() * scale).round() as i32;
 
-            if !initialized.get() {
-                let handle = ui.window().window_handle();
-                let Ok(raw_handle) = handle.window_handle() else { return; };
-                let RawWindowHandle::Win32(win32) = raw_handle.as_raw() else {
-                    ui.set_page_status("Slint did not provide a Win32 HWND; WebKit embedding is unavailable.");
-                    return;
-                };
-                let hwnd = win32.hwnd.get() as *mut c_void;
-                // SAFETY: Slint's Win32 backend owns this HWND and this timer runs
-                // on the Slint UI thread after the window has been shown.
-                match unsafe { WebKitEngine::new(hwnd, (x, y, width, height), on_navigation_event, event_context) } {
-                    Ok(mut engine) => {
-                        if let Err(error) = engine.navigate(ui.get_address().as_str()) {
-                            ui.set_page_status(format!("Initial navigation failed: {error}").into());
-                        } else {
-                            ui.set_page_status("WebKit view created; loading initial page…");
+                if !initialized.get() {
+                    let handle = ui.window().window_handle();
+                    let Ok(raw_handle) = handle.window_handle() else {
+                        return;
+                    };
+                    let RawWindowHandle::Win32(win32) = raw_handle.as_raw() else {
+                        ui.set_page_status(
+                            "Slint did not provide a Win32 HWND; WebKit embedding is unavailable.",
+                        );
+                        return;
+                    };
+                    let hwnd = win32.hwnd.get() as *mut c_void;
+                    // SAFETY: Slint's Win32 backend owns this HWND and this timer
+                    // runs on the Slint UI thread after the window has been shown.
+                    match unsafe {
+                        WebKitEngine::new(
+                            hwnd,
+                            (x, y, width, height),
+                            on_navigation_event,
+                            event_context,
+                        )
+                    } {
+                        Ok(mut engine) => {
+                            if let Err(error) = engine.navigate(ui.get_address().as_str()) {
+                                ui.set_page_status(
+                                    format!("Initial navigation failed: {error}").into(),
+                                );
+                            } else {
+                                ui.set_page_status("WebKit view created; loading initial page…");
+                            }
+                            engine.focus();
+                            *browser.borrow_mut() = Some(engine);
+                            initialized.set(true);
                         }
-                        engine.focus();
-                        *browser.borrow_mut() = Some(engine);
-                        initialized.set(true);
+                        Err(error) => {
+                            ui.set_page_status(
+                                format!("WebKit initialization failed: {error}").into(),
+                            );
+                            initialized.set(true);
+                        }
                     }
-                    Err(error) => {
-                        ui.set_page_status(format!("WebKit initialization failed: {error}").into());
-                        initialized.set(true);
-                    }
+                } else if let Some(engine) = browser.borrow_mut().as_mut() {
+                    engine.resize(x, y, width, height);
+                    ui.set_can_go_back(engine.can_go_back());
+                    ui.set_can_go_forward(engine.can_go_forward());
                 }
-            } else if let Some(engine) = browser.borrow_mut().as_mut() {
-                engine.resize(x, y, width, height);
-                ui.set_can_go_back(engine.can_go_back());
-                ui.set_can_go_forward(engine.can_go_forward());
-            }
-        });
+            },
+        );
     }
 
     let result = ui.run();

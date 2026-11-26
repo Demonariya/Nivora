@@ -95,9 +95,12 @@ component TextButton inherits Rectangle {
 
 component TabItem inherits Rectangle {
     in property <string> title;
+    in property <int> tab-index;
     in property <bool> active: true;
     callback clicked();
     callback close-requested();
+    callback create-drag-data(int) -> data-transfer;
+    callback reorder-requested(data-transfer, int);
 
     accessible-role: tab;
     accessible-label: root.title;
@@ -105,62 +108,83 @@ component TabItem inherits Rectangle {
     width: 184px;
     height: 30px;
     border-radius: 8px;
-    background: root.active ? Palette.surface : #00000000;
+    background: drop-target.has-drag ? Palette.active
+        : root.active ? Palette.surface : #00000000;
     animate background { duration: 120ms; }
 
-    Rectangle {
-        x: 10px;
-        y: 9px;
-        width: 11px;
-        height: 11px;
-        border-radius: 4px;
-        background: Palette.accent;
-    }
+    DragArea {
+        width: parent.width;
+        height: parent.height;
+        data: root.create-drag-data(root.tab-index);
+        allow-move: true;
 
-    Text {
-        x: 29px;
-        y: 0px;
-        width: parent.width - 66px;
-        height: parent.height;
-        text: root.title;
-        color: root.active ? Palette.textPrimary : Palette.textSecondary;
-        font-family: "Segoe UI Variable";
-        font-size: 12px;
-        vertical-alignment: center;
-        overflow: elide;
-    }
-    tab-hit := TouchArea {
-        width: parent.width - 28px;
-        height: parent.height;
-        clicked => { root.clicked(); }
-        pointer-event(event) => {
-            if (event.button == PointerEventButton.middle && event.kind == PointerEventKind.down) {
-                root.close-requested();
-            }
+        Rectangle {
+            x: 10px;
+            y: 9px;
+            width: 11px;
+            height: 11px;
+            border-radius: 4px;
+            background: Palette.accent;
         }
-    }
-
-    Rectangle {
-        x: parent.width - 26px;
-        y: 4px;
-        width: 22px;
-        height: 22px;
-        border-radius: 6px;
-        background: close-hit.has-hover ? Palette.hover : #00000000;
-        opacity: root.active || close-hit.has-hover ? 1 : 0.55;
 
         Text {
-            text: "×";
-            color: Palette.textSecondary;
-            font-family: "Segoe UI Symbol";
-            font-size: 15px;
-            horizontal-alignment: center;
+            x: 29px;
+            y: 0px;
+            width: parent.width - 66px;
+            height: parent.height;
+            text: root.title;
+            color: root.active ? Palette.textPrimary : Palette.textSecondary;
+            font-family: "Segoe UI Variable";
+            font-size: 12px;
             vertical-alignment: center;
+            overflow: elide;
+        }
+
+        tab-hit := TouchArea {
+            width: parent.width - 28px;
+            height: parent.height;
+            clicked => { root.clicked(); }
+            pointer-event(event) => {
+                if (event.button == PointerEventButton.middle && event.kind == PointerEventKind.down) {
+                    root.close-requested();
+                }
+            }
+        }
+
+        Rectangle {
+            x: parent.width - 26px;
+            y: 4px;
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            background: close-hit.has-hover ? Palette.hover : #00000000;
+            opacity: root.active || close-hit.has-hover ? 1 : 0.55;
+
+            Text {
+                text: "×";
+                color: Palette.textSecondary;
+                font-family: "Segoe UI Symbol";
+                font-size: 15px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                width: parent.width;
+                height: parent.height;
+            }
+            close-hit := TouchArea {
+                clicked => { root.close-requested(); }
+            }
+        }
+
+        drop-target := DropArea {
             width: parent.width;
             height: parent.height;
-        }
-        close-hit := TouchArea {
-            clicked => { root.close-requested(); }
+            can-drop(event) => {
+                return DragAction.move;
+            }
+            dropped(event) => {
+                root.reorder-requested(event.data, root.tab-index);
+                return DragAction.move;
+            }
         }
     }
 }
@@ -255,6 +279,8 @@ export component MainWindow inherits Window {
     callback new-tab();
     callback close-tab(int);
     callback select-tab(int);
+    callback create-tab-drag-data(int) -> data-transfer;
+    callback reorder-tab(data-transfer, int);
 
     Rectangle {
         x: 0px;
@@ -271,9 +297,12 @@ export component MainWindow inherits Window {
             spacing: 4px;
             for title[i] in root.tab-titles: TabItem {
                 title: title;
+                tab-index: i;
                 active: i == root.active-tab-index;
                 clicked => { root.select-tab(i); }
                 close-requested => { root.close-tab(i); }
+                create-drag-data(index) => { return root.create-tab-drag-data(index); }
+                reorder-requested(data, target) => { root.reorder-tab(data, target); }
             }
         }
         IconButton {

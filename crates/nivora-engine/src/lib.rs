@@ -1,6 +1,6 @@
 //! Browser-engine facade. The only production engine in this workspace is WebKit WinCairo.
 
-use std::ffi::{CStr, c_char, c_void};
+use std::ffi::{c_char, c_void, CStr};
 
 use nivora_webkit_sys::WebKitView;
 pub use nivora_webkit_sys::{
@@ -77,12 +77,25 @@ pub fn normalize_address(input: &str) -> String {
         return value.to_owned();
     }
     if value.contains(' ') || !value.contains('.') {
-        return format!(
-            "https://www.google.com/search?q={}",
-            value.replace(' ', "+")
-        );
+        return format!("https://duckduckgo.com/?q={}", encode_search_query(value));
     }
     format!("https://{value}")
+}
+
+fn encode_search_query(value: &str) -> String {
+    use std::fmt::Write as _;
+
+    let mut encoded = String::with_capacity(value.len());
+    for byte in value.bytes() {
+        match byte {
+            b' ' => encoded.push('+'),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                encoded.push(byte as char);
+            }
+            _ => write!(&mut encoded, "%{byte:02X}").expect("writing to String cannot fail"),
+        }
+    }
+    encoded
 }
 
 pub fn callback_url(url: *const c_char) -> String {
@@ -101,14 +114,8 @@ mod tests {
 
     #[test]
     fn preserves_explicit_schemes() {
-        assert_eq!(
-            normalize_address("https://example.com"),
-            "https://example.com"
-        );
-        assert_eq!(
-            normalize_address("http://example.com"),
-            "http://example.com"
-        );
+        assert_eq!(normalize_address("https://example.com"), "https://example.com");
+        assert_eq!(normalize_address("http://example.com"), "http://example.com");
     }
 
     #[test]
@@ -120,7 +127,15 @@ mod tests {
     fn turns_plain_text_into_search() {
         assert_eq!(
             normalize_address("rust browser"),
-            "https://www.google.com/search?q=rust+browser"
+            "https://duckduckgo.com/?q=rust+browser"
+        );
+    }
+
+    #[test]
+    fn percent_encodes_search_query_delimiters_and_unicode() {
+        assert_eq!(
+            normalize_address("c++ & café"),
+            "https://duckduckgo.com/?q=c%2B%2B+%26+caf%C3%A9"
         );
     }
 }

@@ -72,14 +72,17 @@ impl Storage {
              WHERE url LIKE ?1 ESCAPE '\\' OR title LIKE ?1 ESCAPE '\\'
              ORDER BY visited_at DESC, id DESC LIMIT ?2",
         )?;
-        let rows = statement.query_map(params![pattern, limit.min(i64::MAX as usize) as i64], |row| {
-            Ok(HistoryEntry {
-                id: row.get(0)?,
-                url: row.get(1)?,
-                title: row.get(2)?,
-                visited_at: row.get(3)?,
-            })
-        })?;
+        let rows = statement.query_map(
+            params![pattern, limit.min(i64::MAX as usize) as i64],
+            |row| {
+                Ok(HistoryEntry {
+                    id: row.get(0)?,
+                    url: row.get(1)?,
+                    title: row.get(2)?,
+                    visited_at: row.get(3)?,
+                })
+            },
+        )?;
         rows.collect()
     }
 
@@ -93,7 +96,10 @@ impl Storage {
     }
 
     pub fn delete_history_entry(&self, id: i64) -> rusqlite::Result<bool> {
-        Ok(self.connection.execute("DELETE FROM history WHERE id = ?1", [id])? > 0)
+        Ok(self
+            .connection
+            .execute("DELETE FROM history WHERE id = ?1", [id])?
+            > 0)
     }
 
     pub fn clear_history(&self) -> rusqlite::Result<()> {
@@ -109,7 +115,9 @@ mod tests {
     #[test]
     fn persists_and_reads_history_rows() {
         let storage = Storage::in_memory().expect("in-memory database");
-        storage.record_visit("https://example.com", Some("Example")).unwrap();
+        storage
+            .record_visit("https://example.com", Some("Example"))
+            .unwrap();
         let entries = storage.recent_history(10).unwrap();
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].url, "https://example.com");
@@ -119,8 +127,12 @@ mod tests {
     #[test]
     fn searches_history_by_title_or_url() {
         let storage = Storage::in_memory().unwrap();
-        storage.record_visit("https://example.com/docs", Some("Rust guide")).unwrap();
-        storage.record_visit("https://other.test", Some("Other page")).unwrap();
+        storage
+            .record_visit("https://example.com/docs", Some("Rust guide"))
+            .unwrap();
+        storage
+            .record_visit("https://other.test", Some("Other page"))
+            .unwrap();
 
         assert_eq!(storage.search_history("Rust", 10).unwrap().len(), 1);
         assert_eq!(storage.search_history("example.com", 10).unwrap().len(), 1);
@@ -131,12 +143,20 @@ mod tests {
     fn updates_title_after_navigation_finishes() {
         let storage = Storage::in_memory().unwrap();
         storage.record_visit("https://example.com", None).unwrap();
-        assert!(storage.update_recent_title("https://example.com", "Example Domain").unwrap());
+        assert!(
+            storage
+                .update_recent_title("https://example.com", "Example Domain")
+                .unwrap()
+        );
         assert_eq!(
             storage.recent_history(1).unwrap()[0].title.as_deref(),
             Some("Example Domain")
         );
-        assert!(!storage.update_recent_title("https://missing.test", "Missing").unwrap());
+        assert!(
+            !storage
+                .update_recent_title("https://missing.test", "Missing")
+                .unwrap()
+        );
     }
 
     #[test]

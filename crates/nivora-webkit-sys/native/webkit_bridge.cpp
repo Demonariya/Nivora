@@ -18,6 +18,37 @@
 #include <vector>
 
 using NivoraEventCallback = void(__cdecl*)(void* context, int event_kind, const char* value, double progress);
+using NivoraShortcutCallback = void(__cdecl*)(void* context, int action);
+
+static HHOOK g_keyboard_hook { nullptr };
+static NivoraShortcutCallback g_shortcut_callback { nullptr };
+static void* g_shortcut_context { nullptr };
+
+static LRESULT CALLBACK keyboard_message_hook(int code, WPARAM wparam, LPARAM lparam)
+{
+    if (code == HC_ACTION && wparam == PM_REMOVE && g_shortcut_callback) {
+        auto* message = reinterpret_cast<MSG*>(lparam);
+        if (message && (message->message == WM_KEYDOWN || message->message == WM_SYSKEYDOWN)
+            && (message->lParam & (1LL << 30)) == 0
+            && (GetKeyState(VK_CONTROL) & 0x8000)) {
+            int action = 0;
+            switch (message->wParam) {
+            case 'T': action = 1; break;
+            case 'W': action = 2; break;
+            case VK_TAB: action = (GetKeyState(VK_SHIFT) & 0x8000) ? 4 : 3; break;
+            default: break;
+            }
+            if (action) {
+                g_shortcut_callback(g_shortcut_context, action);
+                // Consume the shortcut before it reaches WebKit or a page.
+                message->message = WM_NULL;
+                message->wParam = 0;
+                message->lParam = 0;
+            }
+        }
+    }
+    return CallNextHookEx(g_keyboard_hook, code, wparam, lparam);
+}
 
 enum : int {
     NIVORA_NAVIGATION_STARTED = 1,
@@ -298,4 +329,37 @@ extern "C" void nivora_webkit_view_focus(NivoraWebKitView* self)
 {
     if (self && self->child_window && IsWindow(self->child_window))
         SetFocus(self->child_window);
+}
+
+
+extern "C" bool nivora_install_keyboard_shortcuts(HWND host_window, NivoraShortcutCallback callback, void* context)
+{
+    if (!host_window || !callback)
+        return false;
+    const DWORD thread_id = GetWindowThreadProcessId(host_window, nullptr);
+    if (!thread_id)
+        return false;
+    if (g_keyboard_hook)
+        UnhookWindowsHookEx(g_keyboard_hook);
+    g_shortcut_callback = callback;
+    g_shortcut_context = context;
+    g_keyboard_hook = SetWindowsHookExW(WH_GETMESSAGE, keyboard_message_hook, nullptr, thread_id);
+    if (!g_keyboard_hook) {
+        g_shortcut_callback = nullptr;
+        g_shortcut_context = nullptr;
+        return false;
+    }
+    return true;
+}
+
+extern "C" void nivora_uninstall_keyboard_shortcuts()
+{
+    // Clear callback state before unhooking so no queued message can call a
+    // context that Rust has already released.
+    g_shortcut_callback = nullptr;
+    g_shortcut_context = nullptr;
+    if (g_keyboard_hook) {
+        UnhookWindowsHookEx(g_keyboard_hook);
+        g_keyboard_hook = nullptr;
+    }
 }

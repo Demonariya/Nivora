@@ -22,9 +22,15 @@ export global Palette {
 
 component IconButton inherits Rectangle {
     in property <string> glyph;
+    in property <string> description;
     in property <bool> enabled: true;
     in property <bool> selected: false;
     callback clicked();
+
+    accessible-role: button;
+    accessible-label: root.description;
+    accessible-enabled: root.enabled;
+    accessible-action-default => { root.clicked(); }
 
     width: 34px;
     height: 34px;
@@ -57,6 +63,11 @@ component TextButton inherits Rectangle {
     in property <bool> enabled: true;
     callback clicked();
 
+    accessible-role: button;
+    accessible-label: root.label;
+    accessible-enabled: root.enabled;
+    accessible-action-default => { root.clicked(); }
+
     width: 88px;
     height: 28px;
     border-radius: 6px;
@@ -85,6 +96,9 @@ component TextButton inherits Rectangle {
 component TabItem inherits Rectangle {
     in property <string> title;
     in property <bool> active: true;
+
+    accessible-role: tab;
+    accessible-label: root.title;
 
     width: 184px;
     height: 30px;
@@ -150,6 +164,7 @@ component AddressField inherits Rectangle {
         font-family: "Segoe UI Variable";
         font-size: 13px;
         color: Palette.textPrimary;
+        accessible-label: "Address and search";
         selection-background-color: Palette.selection;
         selection-foreground-color: Palette.textPrimary;
         vertical-alignment: center;
@@ -259,17 +274,20 @@ export component MainWindow inherits Window {
 
             IconButton {
                 glyph: "☷";
+                description: "Toggle vertical tab layout";
                 selected: root.vertical-tabs;
                 clicked => { root.vertical-tabs = !root.vertical-tabs; }
             }
             Rectangle { width: 1px; height: 20px; background: Palette.border; }
             IconButton {
                 glyph: "‹";
+                description: "Go back";
                 enabled: root.can-go-back;
                 clicked => { root.go-back(); }
             }
             IconButton {
                 glyph: "›";
+                description: "Go forward";
                 enabled: root.can-go-forward;
                 clicked => { root.go-forward(); }
             }
@@ -286,6 +304,7 @@ export component MainWindow inherits Window {
             }
             IconButton {
                 glyph: "⚙";
+                description: "Quick settings";
                 selected: root.settings-open;
                 clicked => { root.settings-open = !root.settings-open; }
             }
@@ -353,6 +372,8 @@ export component MainWindow inherits Window {
         y: 4px;
         width: 244px;
         height: 84px;
+        accessible-role: groupbox;
+        accessible-label: "Quick settings";
         border-radius: 10px;
         border-width: 1px;
         border-color: Palette.border;

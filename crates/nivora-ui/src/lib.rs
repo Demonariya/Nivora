@@ -185,7 +185,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                         initialized.set(true);
                     }
                     Err(error) => {
-                        ui.set_page_status(format!("WebKit initialization failed: {error}".into()));
+                        ui.set_page_status(format!("WebKit initialization failed: {error}").into());
                         initialized.set(true);
                     }
                 }

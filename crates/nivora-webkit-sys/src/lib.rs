@@ -15,6 +15,7 @@ pub const PAGE_TITLE_CHANGED: i32 = 5;
 pub const LOAD_PROGRESS_CHANGED: i32 = 6;
 
 pub type EventCallback = unsafe extern "C" fn(*mut c_void, i32, *const c_char, f64);
+pub type KeyboardShortcutCallback = unsafe extern "C" fn(*mut c_void, i32);
 
 #[cfg(windows)]
 mod native {
@@ -46,6 +47,12 @@ mod native {
         pub fn nivora_webkit_view_can_go_back(view: *mut c_void) -> bool;
         pub fn nivora_webkit_view_can_go_forward(view: *mut c_void) -> bool;
         pub fn nivora_webkit_view_focus(view: *mut c_void);
+        pub fn nivora_install_keyboard_shortcuts(
+            host_window: *mut c_void,
+            callback: Option<KeyboardShortcutCallback>,
+            context: *mut c_void,
+        ) -> bool;
+        pub fn nivora_uninstall_keyboard_shortcuts();
     }
 }
 
@@ -192,3 +199,35 @@ impl Drop for WebKitView {
         }
     }
 }
+
+
+/// Installs a thread-scoped Win32 message hook for browser keyboard shortcuts.
+///
+/// # Safety
+/// The host HWND and callback context must remain valid until uninstall is called
+/// on the same UI thread.
+#[cfg(windows)]
+pub unsafe fn install_keyboard_shortcuts(
+    host_window: *mut c_void,
+    callback: KeyboardShortcutCallback,
+    context: *mut c_void,
+) -> bool {
+    // SAFETY: forwarded caller contract; hook is scoped to the HWND's UI thread.
+    unsafe { native::nivora_install_keyboard_shortcuts(host_window, Some(callback), context) }
+}
+
+#[cfg(not(windows))]
+pub unsafe fn install_keyboard_shortcuts(
+    _host_window: *mut c_void,
+    _callback: KeyboardShortcutCallback,
+    _context: *mut c_void,
+) -> bool { false }
+
+#[cfg(windows)]
+pub unsafe fn uninstall_keyboard_shortcuts() {
+    // SAFETY: the hook is owned by this process and installed on the current UI thread.
+    unsafe { native::nivora_uninstall_keyboard_shortcuts() };
+}
+
+#[cfg(not(windows))]
+pub unsafe fn uninstall_keyboard_shortcuts() {}

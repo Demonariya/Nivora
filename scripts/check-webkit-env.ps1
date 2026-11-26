@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-$commands = @('git', 'cmake', 'ninja', 'perl', 'ruby', 'clang-cl', 'dumpbin')
+$commands = @('git', 'cmake', 'ninja', 'perl', 'ruby', 'gperf', 'clang-cl', 'cl', 'link', 'dumpbin')
 foreach ($name in $commands) {
     $found = Get-Command $name -ErrorAction SilentlyContinue
     if ($found) { Write-Host "OK  $name -> $($found.Source)" -ForegroundColor Green }

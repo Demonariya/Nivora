@@ -13,6 +13,18 @@ if (-not (Test-Path (Join-Path $source '.git'))) {
 
 Push-Location $source
 try {
+    git config core.autocrlf input
+    if ($LASTEXITCODE -ne 0) { throw 'Could not set WebKit checkout line-ending policy.' }
+
+    foreach ($tool in @('perl', 'cmake', 'ninja', 'ruby', 'gperf', 'clang-cl', 'cl')) {
+        if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
+            throw "Required WebKit build tool '$tool' is not on PATH. Open a Visual Studio Developer PowerShell and verify scripts/check-webkit-env.ps1."
+        }
+    }
+
+    $env:CC = 'clang-cl'
+    $env:CXX = 'clang-cl'
+
     git submodule update --init --recursive
     if ($LASTEXITCODE -ne 0) { throw 'WebKit submodule initialization failed.' }
 

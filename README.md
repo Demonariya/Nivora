@@ -36,3 +36,8 @@ The Windows build fails if required WebKit headers or the import library are mis
 CI installs Slint's Linux native build dependencies, verifies Rust formatting, checks the host workspace, runs unit tests, and type-checks Windows Rust code. Native MSVC compilation, actual WebKit2.dll export verification, HTTPS navigation, HWND z-order/focus/input, resize/DPI, and native teardown still require a Windows runner with the matching WebKit SDK. See docs/roadmap.md for the acceptance checklist.
 
 WebKit binaries are not vendored. Nivora's original source is MIT-licensed; third-party licenses remain applicable. See [third-party license notes](docs/third-party-licenses.md) before redistribution.
+
+
+## Multi-tab implementation
+
+The browser shell now has a real tab model backed by independent WebKit WinCairo views. Each opened tab lazily creates its own WKView/WKPage, retains its navigation state while hidden, and is shown again when selected. Closing a tab destroys its native view before releasing its navigation callback context. This is source-level implementation; native WinCairo runtime acceptance still requires a Windows runner provisioned with the matching WebKit SDK and runtime.

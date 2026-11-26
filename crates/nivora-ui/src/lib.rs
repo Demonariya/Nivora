@@ -41,6 +41,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
         ui: slint::Weak<MainWindow>,
         tab_id: u64,
         active_tab_id: Rc<Cell<u64>>,
+        tab_url: Rc<RefCell<String>>,
     }
 
     // Keep the engine before its callback context in TabState. Rust drops
@@ -48,7 +49,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
     struct TabState {
         id: u64,
         title: String,
-        url: String,
+        url: Rc<RefCell<String>>,
         engine: Option<WebKitEngine>,
         event_sink: Option<Box<EventSink>>,
     }
@@ -65,7 +66,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                 tabs: vec![TabState {
                     id: 1,
                     title: "New Tab".into(),
-                    url: "https://example.com".into(),
+                    url: Rc::new(RefCell::new("https://example.com".into())), 
                     engine: None,
                     event_sink: None,
                 }],
@@ -87,7 +88,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             self.tabs.push(TabState {
                 id: self.next_id,
                 title: "New Tab".into(),
-                url: "about:blank".into(),
+                url: Rc::new(RefCell::new("about:blank".into())), 
                 engine: None,
                 event_sink: None,
             });
@@ -103,7 +104,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             .collect::<Vec<_>>();
         ui.set_tab_titles(ModelRc::new(VecModel::from(titles)));
         ui.set_active_tab_index(state.active as i32);
-        ui.set_address(state.active_tab().url.clone().into());
+        ui.set_address(state.active_tab().url.borrow().clone().into());
         if let Some(engine) = state.active_tab().engine.as_ref() {
             ui.set_can_go_back(engine.can_go_back());
             ui.set_can_go_forward(engine.can_go_forward());
@@ -132,6 +133,9 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             return;
         };
         let url = callback_url(url);
+        if !url.is_empty() {
+            *sink.tab_url.borrow_mut() = url.clone();
+        }
         match kind {
             NAVIGATION_STARTED => {
                 ui.set_is_loading(true);
@@ -170,7 +174,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             let mut state = browser.borrow_mut();
             let normalized = normalize_address(address.as_str());
             let tab = state.active_tab_mut();
-            tab.url = normalized.clone();
+            *tab.url.borrow_mut() = normalized.clone();
             if let Some(engine) = tab.engine.as_mut() {
                 if let Err(error) = engine.navigate(&normalized) {
                     eprintln!("Navigation request rejected: {error}");
@@ -186,10 +190,12 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
     }
     {
         let browser = browser.clone();
+        let active_tab_id = active_tab_id.clone();
         let ui = ui.as_weak();
         ui.on_new_tab(move || {
             let mut state = browser.borrow_mut();
             state.open_tab();
+            active_tab_id.set(state.active_tab().id);
             if let Some(ui) = ui.upgrade() {
                 sync_ui(&ui, &state);
                 ui.set_page_status("New tab".into());
@@ -226,7 +232,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             let mut state = browser.borrow_mut();
             if state.tabs.len() == 1 {
                 let tab = state.active_tab_mut();
-                tab.url = "about:blank".into();
+                *tab.url.borrow_mut() = "about:blank".into();
                 tab.title = "New Tab".into();
                 if let Some(engine) = tab.engine.as_mut() {
                     let _ = engine.navigate("about:blank");
@@ -319,6 +325,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                     ui: ui.as_weak(),
                     tab_id,
                     active_tab_id: active_tab_id.clone(),
+                    tab_url: state.tabs[active_index].url.clone(),
                 });
                 let context = (&*sink as *const EventSink).cast_mut().cast::<c_void>();
                 // SAFETY: the Slint HWND and all WKViews are created, resized,
@@ -332,7 +339,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                     )
                 } {
                     Ok(mut engine) => {
-                        let initial_url = state.tabs[active_index].url.clone();
+                        let initial_url = state.tabs[active_index].url.borrow().clone();
                         if let Err(error) = engine.navigate(&initial_url) {
                             ui.set_page_status(format!("Initial navigation failed: {error}").into());
                         }

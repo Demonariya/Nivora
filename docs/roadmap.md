@@ -24,7 +24,7 @@ Status labels describe evidence in this repository, not intended work.
 - [x] Accessible names, roles, and default actions for custom controls.
 - [x] Keep the settings popover inside the Slint chrome region so the native WebKit child HWND cannot cover it.
 - [ ] Follow Windows System appearance automatically.
-- [ ] Real multi-tab WebKit lifecycle, favicons, and drag-and-drop.
+- [x] Independent WKView/WKPage ownership per tab, lazy view creation, tab switching, and close-time teardown (source implementation; native runtime validation pending).\n- [ ] Page-title/favicon updates and tab drag-and-drop.
 - [ ] Search suggestions, security/TLS indicators, and engine-reported loading progress.
 - [ ] Functional bookmarks, history, downloads, passwords, and extensions panels.
 - [ ] Settings categories and accessibility keyboard traversal tests.
@@ -43,7 +43,7 @@ Status labels describe evidence in this repository, not intended work.
 
 ## Milestone 2 — browser core
 
-- [ ] Multi-tab WebKit view lifecycle.
+- [x] Multi-tab WebKit view lifecycle source implementation (native runtime validation pending).
 - [ ] Persist history and bookmarks in SQLite.
 - [ ] Downloads and permission UI.
 - [ ] Private browsing with isolated ephemeral website data store.

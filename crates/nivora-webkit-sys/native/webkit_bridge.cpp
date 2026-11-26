@@ -197,7 +197,7 @@ extern "C" void nivora_webkit_view_resize(NivoraWebKitView* self, int x, int y, 
     if (!self || !self->view || !self->child_window || width <= 0 || height <= 0)
         return;
     SetWindowPos(self->child_window, nullptr, x, y, width, height,
-        SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
 }
 
 extern "C" void nivora_webkit_view_set_visible(NivoraWebKitView* self, bool visible)

@@ -66,7 +66,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                 tabs: vec![TabState {
                     id: 1,
                     title: "New Tab".into(),
-                    url: Rc::new(RefCell::new("https://example.com".into())), 
+                    url: Rc::new(RefCell::new("https://example.com".into())),
                     engine: None,
                     event_sink: None,
                 }],
@@ -88,7 +88,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             self.tabs.push(TabState {
                 id: self.next_id,
                 title: "New Tab".into(),
-                url: Rc::new(RefCell::new("about:blank".into())), 
+                url: Rc::new(RefCell::new("about:blank".into())),
                 engine: None,
                 event_sink: None,
             });

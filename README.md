@@ -65,3 +65,8 @@ The hook consumes only these browser shortcuts and is removed before its callbac
 ### Tab reordering
 
 Tabs in the horizontal tab strip can be reordered by dragging one tab onto another. Reordering uses stable internal tab IDs, so the active page and its WebKit view remain associated with the same tab while the tab order changes. The vertical tab layout is not yet a full tab list. Native WinCairo runtime validation is still pending.
+
+
+### Persistent browsing history
+
+Nivora records completed normal-mode HTTP/HTTPS page visits in a SQLite database at `%APPDATA%\\Nivora\\browser.sqlite3`. The storage layer supports recent-history queries, title/URL search, deleting an individual entry, and clearing all history. Private browsing is not implemented yet; do not treat the current browser as private.

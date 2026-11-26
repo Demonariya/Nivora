@@ -27,7 +27,8 @@ Status labels describe evidence in this repository, not intended work.
 - [x] Independent WKView/WKPage ownership per tab, lazy view creation, tab switching, and close-time teardown (source implementation; native runtime validation pending).
 - [x] Main-page title updates from WKPageStateClient, including background-tab title retention.
 - [x] Per-tab close controls and middle-click tab closing (source implementation; native runtime validation pending).
-- [ ] Favicon retrieval and tab drag-and-drop.
+- [ ] Favicon retrieval (the selected WinCairo SDK's public C API path is not yet verified).
+- [x] Horizontal tab drag-and-drop reordering using Slint DragArea/DropArea and stable tab IDs (native runtime validation pending).
 - [x] Engine-reported loading progress from WKPageGetEstimatedProgress.
 - [ ] Search suggestions and security/TLS indicators.
 - [ ] Functional bookmarks, history, downloads, passwords, and extensions panels.

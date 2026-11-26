@@ -163,7 +163,11 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                 sink.progress.set(0.0);
             }
             PAGE_TITLE_CHANGED => {
-                let title = if value.trim().is_empty() { "New Tab" } else { value.trim() };
+                let title = if value.trim().is_empty() {
+                    "New Tab"
+                } else {
+                    value.trim()
+                };
                 *sink.tab_title.borrow_mut() = title.to_owned();
                 sink.title_dirty.set(true);
             }

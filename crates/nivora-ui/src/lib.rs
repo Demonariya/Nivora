@@ -156,7 +156,8 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                 };
                 let RawWindowHandle::Win32(win32) = raw_handle.as_raw() else {
                     ui.set_page_status(
-                        "Slint did not provide a Win32 HWND; WebKit embedding is unavailable.".into(),
+                        "Slint did not provide a Win32 HWND; WebKit embedding is unavailable."
+                            .into(),
                     );
                     return;
                 };
@@ -184,7 +185,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                         initialized.set(true);
                     }
                     Err(error) => {
-                        ui.set_page_status(format!("WebKit initialization failed: {error}").into());
+                        ui.set_page_status(format!("WebKit initialization failed: {error}".into()));
                         initialized.set(true);
                     }
                 }

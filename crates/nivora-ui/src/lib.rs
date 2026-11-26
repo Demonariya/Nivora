@@ -126,16 +126,16 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
         // SAFETY: the Box<EventSink> is retained by the matching TabState until
         // after its WebKitEngine has been explicitly destroyed on this UI thread.
         let sink = unsafe { &*(context.cast::<EventSink>()) };
+        let url = callback_url(url);
+        if !url.is_empty() {
+            *sink.tab_url.borrow_mut() = url.clone();
+        }
         if sink.active_tab_id.get() != sink.tab_id {
             return;
         }
         let Some(ui) = sink.ui.upgrade() else {
             return;
         };
-        let url = callback_url(url);
-        if !url.is_empty() {
-            *sink.tab_url.borrow_mut() = url.clone();
-        }
         match kind {
             NAVIGATION_STARTED => {
                 ui.set_is_loading(true);

@@ -1,5 +1,7 @@
 # Nivora
 
+[![Made with Slint](https://raw.githubusercontent.com/slint-ui/slint/v1.19.1/logo/MadeWithSlint-logo-whitebg.png)](https://slint.dev/)
+
 A lightweight, privacy-focused Windows browser powered by Rust and WebKit.
 
 Nivora uses the official WebKit WinCairo port through its native WKView C API. The UI is Rust + Slint, with a narrow C++ ABI bridge. There is no WebView2, Chromium, Electron, or CEF fallback.
@@ -25,4 +27,4 @@ The Windows build fails if required WebKit headers or the import library are mis
 
 CI installs Slint's Linux native build dependencies, verifies Rust formatting, checks the host workspace, runs unit tests, and type-checks Windows Rust code. Native MSVC compilation, actual WebKit2.dll export verification, HTTPS navigation, HWND z-order/focus/input, resize/DPI, and native teardown still require a Windows runner with the matching WebKit SDK. See docs/roadmap.md for the acceptance checklist.
 
-WebKit binaries are not vendored. Nivora's original source is MIT-licensed; third-party licenses remain applicable.
+WebKit binaries are not vendored. Nivora's original source is MIT-licensed; third-party licenses remain applicable. See [third-party license notes](docs/third-party-licenses.md) before redistribution.

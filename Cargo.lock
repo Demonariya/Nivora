@@ -2780,6 +2780,7 @@ name = "nivora-ui"
 version = "0.1.0"
 dependencies = [
  "nivora-engine",
+ "nivora-storage",
  "raw-window-handle",
  "slint",
  "slint-build",

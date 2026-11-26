@@ -49,7 +49,8 @@ Status labels describe evidence in this repository, not intended work.
 ## Milestone 2 — browser core
 
 - [x] Multi-tab WebKit view lifecycle source implementation (native runtime validation pending).
-- [ ] Persist history and bookmarks in SQLite.
+- [x] Persist completed normal-mode navigations in SQLite under %APPDATA%\\Nivora\\browser.sqlite3 (history API supports recent, search, delete, and clear; UI panel pending).
+- [ ] Persist bookmarks in SQLite.
 - [ ] Downloads and permission UI.
 - [ ] Private browsing with isolated ephemeral website data store.
 - [ ] Password storage using Windows DPAPI and WebAuthn integration.

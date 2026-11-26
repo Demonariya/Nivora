@@ -25,9 +25,9 @@ pub fn run() -> Result<(), Box<dyn Error>> {
 #[cfg(windows)]
 fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
     use nivora_engine::{
-        LOAD_PROGRESS_CHANGED, NAVIGATION_COMMITTED, NAVIGATION_FAILED, NAVIGATION_FINISHED,
-        NAVIGATION_STARTED, PAGE_TITLE_CHANGED, KeyboardShortcutCallback, WebKitEngine,
-        callback_url, install_keyboard_shortcuts, normalize_address, uninstall_keyboard_shortcuts,
+        KeyboardShortcutCallback, LOAD_PROGRESS_CHANGED, NAVIGATION_COMMITTED, NAVIGATION_FAILED,
+        NAVIGATION_FINISHED, NAVIGATION_STARTED, PAGE_TITLE_CHANGED, WebKitEngine, callback_url,
+        install_keyboard_shortcuts, normalize_address, uninstall_keyboard_shortcuts,
     };
     use raw_window_handle_06::{HasWindowHandle, RawWindowHandle};
     use slint::{ModelRc, Timer, TimerMode, VecModel};
@@ -465,7 +465,9 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                     active_tab_id: active_tab_id.clone(),
                     ui: ui.as_weak(),
                 });
-                let context_ptr = (&*context as *const ShortcutContext).cast_mut().cast::<c_void>();
+                let context_ptr = (&*context as *const ShortcutContext)
+                    .cast_mut()
+                    .cast::<c_void>();
                 // SAFETY: context is retained until after the UI-thread hook is uninstalled.
                 if unsafe {
                     install_keyboard_shortcuts(
@@ -524,9 +526,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                         ui.set_page_status("WebKit tab created".into());
                     }
                     Err(error) => {
-                        ui.set_page_status(
-                            format!("WebKit initialization failed: {error}").into(),
-                        );
+                        ui.set_page_status(format!("WebKit initialization failed: {error}").into());
                         return;
                     }
                 }

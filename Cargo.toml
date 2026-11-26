@@ -19,6 +19,7 @@ repository = "https://github.com/Demonariya/Nivora"
 
 [workspace.dependencies]
 nivora-engine = { path = "crates/nivora-engine" }
+nivora-storage = { path = "crates/nivora-storage" }
 nivora-ui = { path = "crates/nivora-ui" }
 nivora-webkit-sys = { path = "crates/nivora-webkit-sys" }
 rusqlite = { version = "0.38", features = ["bundled"] }

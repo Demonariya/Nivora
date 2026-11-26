@@ -83,6 +83,15 @@ impl Storage {
         rows.collect()
     }
 
+    /// Updates the most recent visit for a URL when WebKit reports its document title.
+    pub fn update_recent_title(&self, url: &str, title: &str) -> rusqlite::Result<bool> {
+        Ok(self.connection.execute(
+            "UPDATE history SET title = ?1
+             WHERE id = (SELECT id FROM history WHERE url = ?2 ORDER BY id DESC LIMIT 1)",
+            params![title, url],
+        )? > 0)
+    }
+
     pub fn delete_history_entry(&self, id: i64) -> rusqlite::Result<bool> {
         Ok(self.connection.execute("DELETE FROM history WHERE id = ?1", [id])? > 0)
     }
@@ -116,6 +125,18 @@ mod tests {
         assert_eq!(storage.search_history("Rust", 10).unwrap().len(), 1);
         assert_eq!(storage.search_history("example.com", 10).unwrap().len(), 1);
         assert!(storage.search_history("missing", 10).unwrap().is_empty());
+    }
+
+    #[test]
+    fn updates_title_after_navigation_finishes() {
+        let storage = Storage::in_memory().unwrap();
+        storage.record_visit("https://example.com", None).unwrap();
+        assert!(storage.update_recent_title("https://example.com", "Example Domain").unwrap());
+        assert_eq!(
+            storage.recent_history(1).unwrap()[0].title.as_deref(),
+            Some("Example Domain")
+        );
+        assert!(!storage.update_recent_title("https://missing.test", "Missing").unwrap());
     }
 
     #[test]

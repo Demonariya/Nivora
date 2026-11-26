@@ -7,6 +7,7 @@
 #include <WebKit/WKPageConfigurationRef.h>
 #include <WebKit/WKFramePolicyListener.h>
 #include <WebKit/WKPageNavigationClient.h>
+#include <WebKit/WKPageStateClient.h>
 #include <WebKit/WKString.h>
 #include <WebKit/WKType.h>
 #include <WebKit/WKURL.h>
@@ -16,13 +17,15 @@
 #include <string>
 #include <vector>
 
-using NivoraEventCallback = void(__cdecl*)(void* context, int event_kind, const char* url);
+using NivoraEventCallback = void(__cdecl*)(void* context, int event_kind, const char* value, double progress);
 
 enum : int {
     NIVORA_NAVIGATION_STARTED = 1,
     NIVORA_NAVIGATION_COMMITTED = 2,
     NIVORA_NAVIGATION_FINISHED = 3,
     NIVORA_NAVIGATION_FAILED = 4,
+    NIVORA_PAGE_TITLE_CHANGED = 5,
+    NIVORA_LOAD_PROGRESS_CHANGED = 6,
 };
 
 struct NivoraWebKitView {
@@ -32,6 +35,7 @@ struct NivoraWebKitView {
     NivoraEventCallback callback { nullptr };
     void* callback_context { nullptr };
     WKPageNavigationClientV0 navigation_client { };
+    WKPageStateClientV0 state_client { };
 };
 
 static std::string copy_page_url(WKPageRef page)
@@ -60,7 +64,41 @@ static void emit_navigation_event(WKPageRef page, int event_kind, const void* cl
     if (!self || !self->callback)
         return;
     const std::string url = copy_page_url(page);
-    self->callback(self->callback_context, event_kind, url.c_str());
+    self->callback(self->callback_context, event_kind, url.c_str(), 0.0);
+}
+
+static std::string copy_wk_string(WKStringRef string)
+{
+    if (!string)
+        return { };
+    const size_t capacity = WKStringGetMaximumUTF8CStringSize(string);
+    std::vector<char> buffer(capacity ? capacity : 1, '\0');
+    WKStringGetUTF8CString(string, buffer.data(), buffer.size());
+    return std::string(buffer.data());
+}
+
+static void did_change_title(const void* client_info)
+{
+    auto* self = const_cast<NivoraWebKitView*>(static_cast<const NivoraWebKitView*>(client_info));
+    if (!self || !self->page || !self->callback)
+        return;
+    WKStringRef title = WKPageCopyTitle(self->page);
+    const std::string value = copy_wk_string(title);
+    if (title)
+        WKRelease(title);
+    self->callback(self->callback_context, NIVORA_PAGE_TITLE_CHANGED, value.c_str(), 0.0);
+}
+
+static void did_change_estimated_progress(const void* client_info)
+{
+    auto* self = const_cast<NivoraWebKitView*>(static_cast<const NivoraWebKitView*>(client_info));
+    if (!self || !self->page || !self->callback)
+        return;
+    self->callback(
+        self->callback_context,
+        NIVORA_LOAD_PROGRESS_CHANGED,
+        "",
+        WKPageGetEstimatedProgress(self->page));
 }
 
 static void decide_policy_for_action(
@@ -163,6 +201,13 @@ extern "C" NivoraWebKitView* nivora_webkit_view_create(
     self->navigation_client.didFailNavigation = did_fail;
     WKPageSetPageNavigationClient(self->page, &self->navigation_client.base);
 
+    self->state_client = { };
+    self->state_client.base.version = 0;
+    self->state_client.base.clientInfo = self;
+    self->state_client.didChangeTitle = did_change_title;
+    self->state_client.didChangeEstimatedProgress = did_change_estimated_progress;
+    WKPageSetPageStateClient(self->page, &self->state_client.base);
+
     // WKViewCreate already receives the parent HWND. Set it explicitly as well
     // so reparenting and ancestry notifications follow the public WinCairo API.
     WKViewSetParentWindow(self->view, parent_window);
@@ -171,6 +216,7 @@ extern "C" NivoraWebKitView* nivora_webkit_view_create(
     if (!SetWindowPos(self->child_window, nullptr, x, y, width, height,
             SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW)) {
         WKViewSetIsInWindow(self->view, false);
+        WKPageSetPageStateClient(self->page, nullptr);
         WKPageClose(self->page);
         WKRelease(self->view);
         delete self;
@@ -185,8 +231,10 @@ extern "C" void nivora_webkit_view_destroy(NivoraWebKitView* self)
         return;
     if (self->view)
         WKViewSetIsInWindow(self->view, false);
-    if (self->page)
+    if (self->page) {
+        WKPageSetPageStateClient(self->page, nullptr);
         WKPageClose(self->page);
+    }
     if (self->view)
         WKRelease(self->view);
     delete self;

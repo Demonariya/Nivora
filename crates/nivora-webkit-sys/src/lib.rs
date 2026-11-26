@@ -11,8 +11,10 @@ pub const NAVIGATION_STARTED: i32 = 1;
 pub const NAVIGATION_COMMITTED: i32 = 2;
 pub const NAVIGATION_FINISHED: i32 = 3;
 pub const NAVIGATION_FAILED: i32 = 4;
+pub const PAGE_TITLE_CHANGED: i32 = 5;
+pub const LOAD_PROGRESS_CHANGED: i32 = 6;
 
-pub type EventCallback = unsafe extern "C" fn(*mut c_void, i32, *const c_char);
+pub type EventCallback = unsafe extern "C" fn(*mut c_void, i32, *const c_char, f64);
 
 #[cfg(windows)]
 mod native {

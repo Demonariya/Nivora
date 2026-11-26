@@ -4,10 +4,11 @@ use std::ffi::{CStr, c_char, c_void};
 
 use nivora_webkit_sys::WebKitView;
 pub use nivora_webkit_sys::{
-    NAVIGATION_COMMITTED, NAVIGATION_FAILED, NAVIGATION_FINISHED, NAVIGATION_STARTED,
+    LOAD_PROGRESS_CHANGED, NAVIGATION_COMMITTED, NAVIGATION_FAILED, NAVIGATION_FINISHED,
+    NAVIGATION_STARTED, PAGE_TITLE_CHANGED,
 };
 
-pub type NavigationCallback = unsafe extern "C" fn(*mut c_void, i32, *const c_char);
+pub type NavigationCallback = unsafe extern "C" fn(*mut c_void, i32, *const c_char, f64);
 
 pub struct WebKitEngine {
     view: WebKitView,

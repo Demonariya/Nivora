@@ -25,8 +25,8 @@ pub fn run() -> Result<(), Box<dyn Error>> {
 #[cfg(windows)]
 fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
     use nivora_engine::{
-        NAVIGATION_COMMITTED, NAVIGATION_FAILED, NAVIGATION_FINISHED, NAVIGATION_STARTED,
-        WebKitEngine, callback_url, normalize_address,
+        LOAD_PROGRESS_CHANGED, NAVIGATION_COMMITTED, NAVIGATION_FAILED, NAVIGATION_FINISHED,
+        NAVIGATION_STARTED, PAGE_TITLE_CHANGED, WebKitEngine, callback_url, normalize_address,
     };
     use raw_window_handle_06::{HasWindowHandle, RawWindowHandle};
     use slint::{ModelRc, Timer, TimerMode, VecModel};
@@ -42,14 +42,21 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
         tab_id: u64,
         active_tab_id: Rc<Cell<u64>>,
         tab_url: Rc<RefCell<String>>,
+        tab_title: Rc<RefCell<String>>,
+        title_dirty: Rc<Cell<bool>>,
+        is_loading: Rc<Cell<bool>>,
+        progress: Rc<Cell<f64>>,
     }
 
     // Keep the engine before its callback context in TabState. Rust drops
     // struct fields in declaration order, so WKPage/WKView is destroyed first.
     struct TabState {
         id: u64,
-        title: String,
+        title: Rc<RefCell<String>>,
+        title_dirty: Rc<Cell<bool>>,
         url: Rc<RefCell<String>>,
+        is_loading: Rc<Cell<bool>>,
+        progress: Rc<Cell<f64>>,
         engine: Option<WebKitEngine>,
         event_sink: Option<Box<EventSink>>,
     }
@@ -65,8 +72,11 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             Self {
                 tabs: vec![TabState {
                     id: 1,
-                    title: "New Tab".into(),
+                    title: Rc::new(RefCell::new("New Tab".into())),
+                    title_dirty: Rc::new(Cell::new(false)),
                     url: Rc::new(RefCell::new("https://example.com".into())),
+                    is_loading: Rc::new(Cell::new(false)),
+                    progress: Rc::new(Cell::new(0.0)),
                     engine: None,
                     event_sink: None,
                 }],
@@ -87,8 +97,11 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             self.next_id += 1;
             self.tabs.push(TabState {
                 id: self.next_id,
-                title: "New Tab".into(),
+                title: Rc::new(RefCell::new("New Tab".into())),
+                title_dirty: Rc::new(Cell::new(false)),
                 url: Rc::new(RefCell::new("about:blank".into())),
+                is_loading: Rc::new(Cell::new(false)),
+                progress: Rc::new(Cell::new(0.0)),
                 engine: None,
                 event_sink: None,
             });
@@ -96,13 +109,17 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
         }
     }
 
-    fn sync_ui(ui: &MainWindow, state: &BrowserState) {
+    fn sync_tab_titles(ui: &MainWindow, state: &BrowserState) {
         let titles = state
             .tabs
             .iter()
-            .map(|tab| slint::SharedString::from(tab.title.as_str()))
+            .map(|tab| slint::SharedString::from(tab.title.borrow().as_str()))
             .collect::<Vec<_>>();
         ui.set_tab_titles(ModelRc::new(VecModel::from(titles)));
+    }
+
+    fn sync_ui(ui: &MainWindow, state: &BrowserState) {
+        sync_tab_titles(ui, state);
         ui.set_active_tab_index(state.active as i32);
         ui.set_address(state.active_tab().url.borrow().clone().into());
         if let Some(engine) = state.active_tab().engine.as_ref() {
@@ -112,13 +129,15 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             ui.set_can_go_back(false);
             ui.set_can_go_forward(false);
         }
-        ui.set_is_loading(false);
+        ui.set_is_loading(state.active_tab().is_loading.get());
+        ui.set_load_progress(state.active_tab().progress.get() as f32);
     }
 
     unsafe extern "C" fn on_navigation_event(
         context: *mut c_void,
         kind: i32,
-        url: *const std::ffi::c_char,
+        value: *const std::ffi::c_char,
+        progress: f64,
     ) {
         if context.is_null() {
             return;
@@ -126,9 +145,34 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
         // SAFETY: the Box<EventSink> is retained by the matching TabState until
         // after its WebKitEngine has been explicitly destroyed on this UI thread.
         let sink = unsafe { &*(context.cast::<EventSink>()) };
-        let url = callback_url(url);
-        if !url.is_empty() {
-            *sink.tab_url.borrow_mut() = url.clone();
+        let value = callback_url(value);
+        if (NAVIGATION_STARTED..=NAVIGATION_FAILED).contains(&kind) && !value.is_empty() {
+            *sink.tab_url.borrow_mut() = value.clone();
+        }
+        match kind {
+            NAVIGATION_STARTED => {
+                sink.is_loading.set(true);
+                sink.progress.set(0.0);
+            }
+            NAVIGATION_FINISHED => {
+                sink.is_loading.set(false);
+                sink.progress.set(1.0);
+            }
+            NAVIGATION_FAILED => {
+                sink.is_loading.set(false);
+                sink.progress.set(0.0);
+            }
+            PAGE_TITLE_CHANGED => {
+                let title = if value.trim().is_empty() { "New Tab" } else { value.trim() };
+                *sink.tab_title.borrow_mut() = title.to_owned();
+                sink.title_dirty.set(true);
+            }
+            LOAD_PROGRESS_CHANGED => {
+                if progress.is_finite() {
+                    sink.progress.set(progress.clamp(0.0, 1.0));
+                }
+            }
+            _ => {}
         }
         if sink.active_tab_id.get() != sink.tab_id {
             return;
@@ -139,23 +183,26 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
         match kind {
             NAVIGATION_STARTED => {
                 ui.set_is_loading(true);
+                ui.set_load_progress(0.0);
                 ui.set_page_status("Loading…".into());
             }
             NAVIGATION_COMMITTED => {
-                if !url.is_empty() {
-                    ui.set_address(url.into());
+                if !value.is_empty() {
+                    ui.set_address(value.clone().into());
                 }
                 ui.set_page_status("Connected".into());
             }
             NAVIGATION_FINISHED => {
                 ui.set_is_loading(false);
-                if !url.is_empty() {
-                    ui.set_address(url.into());
+                ui.set_load_progress(1.0);
+                if !value.is_empty() {
+                    ui.set_address(value.clone().into());
                 }
                 ui.set_page_status("Ready".into());
             }
             NAVIGATION_FAILED => {
                 ui.set_is_loading(false);
+                ui.set_load_progress(0.0);
                 ui.set_page_status(
                     "Navigation failed. Check the address or WebKit network process.".into(),
                 );
@@ -177,6 +224,8 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             let normalized = normalize_address(address.as_str());
             let tab = state.active_tab_mut();
             *tab.url.borrow_mut() = normalized.clone();
+            tab.is_loading.set(true);
+            tab.progress.set(0.0);
             if let Some(engine) = tab.engine.as_mut() {
                 if let Err(error) = engine.navigate(&normalized) {
                     eprintln!("Navigation request rejected: {error}");
@@ -235,7 +284,10 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             if state.tabs.len() == 1 {
                 let tab = state.active_tab_mut();
                 *tab.url.borrow_mut() = "about:blank".into();
-                tab.title = "New Tab".into();
+                *tab.title.borrow_mut() = "New Tab".into();
+                tab.title_dirty.set(true);
+                tab.is_loading.set(false);
+                tab.progress.set(0.0);
                 if let Some(engine) = tab.engine.as_mut() {
                     let _ = engine.navigate("about:blank");
                 }
@@ -324,6 +376,12 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
 
             let mut state = browser.borrow_mut();
             let active_index = state.active;
+            let titles_changed = state.tabs.iter().any(|tab| tab.title_dirty.replace(false));
+            if titles_changed {
+                sync_tab_titles(&ui, &state);
+            }
+            ui.set_is_loading(state.active_tab().is_loading.get());
+            ui.set_load_progress(state.active_tab().progress.get() as f32);
             if state.tabs[active_index].engine.is_none() {
                 let tab_id = state.tabs[active_index].id;
                 let sink = Box::new(EventSink {
@@ -331,6 +389,10 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                     tab_id,
                     active_tab_id: active_tab_id.clone(),
                     tab_url: state.tabs[active_index].url.clone(),
+                    tab_title: state.tabs[active_index].title.clone(),
+                    title_dirty: state.tabs[active_index].title_dirty.clone(),
+                    is_loading: state.tabs[active_index].is_loading.clone(),
+                    progress: state.tabs[active_index].progress.clone(),
                 });
                 let context = (&*sink as *const EventSink).cast_mut().cast::<c_void>();
                 // SAFETY: the Slint HWND and all WKViews are created, resized,

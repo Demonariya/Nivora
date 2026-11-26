@@ -24,8 +24,8 @@ Status labels describe evidence in this repository, not intended work.
 - [x] Accessible names, roles, and default actions for custom controls.
 - [x] Keep the settings popover inside the Slint chrome region so the native WebKit child HWND cannot cover it.
 - [ ] Follow Windows System appearance automatically.
-- [x] Independent WKView/WKPage ownership per tab, lazy view creation, tab switching, and close-time teardown (source implementation; native runtime validation pending).\n- [ ] Page-title/favicon updates and tab drag-and-drop.
-- [ ] Search suggestions, security/TLS indicators, and engine-reported loading progress.
+- [x] Independent WKView/WKPage ownership per tab, lazy view creation, tab switching, and close-time teardown (source implementation; native runtime validation pending).\n- [x] Main-page title updates from WKPageStateClient, including background-tab title retention.\n- [ ] Favicon retrieval and tab drag-and-drop.
+- [x] Engine-reported loading progress from WKPageGetEstimatedProgress.\n- [ ] Search suggestions and security/TLS indicators.
 - [ ] Functional bookmarks, history, downloads, passwords, and extensions panels.
 - [ ] Settings categories and accessibility keyboard traversal tests.
 - [ ] Windows visual QA at small/normal/maximized sizes and 100%–200% DPI.

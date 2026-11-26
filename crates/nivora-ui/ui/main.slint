@@ -204,6 +204,7 @@ export component MainWindow inherits Window {
     in-out property <bool> can-go-back: false;
     in-out property <bool> can-go-forward: false;
     in-out property <bool> is-loading: false;
+    in-out property <float> load-progress: 0.0;
     in property <[string]> tab-titles;
     in property <int> active-tab-index: 0;
 
@@ -339,6 +340,15 @@ export component MainWindow inherits Window {
                 clicked => { root.settings-open = !root.settings-open; }
             }
         }
+    }
+
+    Rectangle {
+        x: 0px;
+        y: 90px;
+        width: parent.width * root.load-progress;
+        height: 2px;
+        background: Palette.accent;
+        opacity: root.is-loading ? 1 : 0;
     }
 
     if root.vertical-tabs: Rectangle {

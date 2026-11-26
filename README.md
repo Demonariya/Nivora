@@ -41,3 +41,8 @@ WebKit binaries are not vendored. Nivora's original source is MIT-licensed; thir
 ## Multi-tab implementation
 
 The browser shell now has a real tab model backed by independent WebKit WinCairo views. Each opened tab lazily creates its own WKView/WKPage, retains its navigation state while hidden, and is shown again when selected. Closing a tab destroys its native view before releasing its navigation callback context. This is source-level implementation; native WinCairo runtime acceptance still requires a Windows runner provisioned with the matching WebKit SDK and runtime.
+
+
+### Page metadata and loading feedback
+
+The WinCairo bridge subscribes to WebKit page-load state changes. Main-page title updates are stored per tab and reflected in the tab strip, including updates received while a tab is in the background. The toolbar loading indicator uses WebKit's estimated page-load progress rather than a simulated timer. Favicon retrieval is not included yet because it requires a separately verified icon/resource API path for the selected WinCairo SDK.

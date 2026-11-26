@@ -1,6 +1,6 @@
 # Roadmap and implementation status
 
-Status reflects evidence in the repository, not intended work.
+Status labels describe evidence in this repository, not intended work.
 
 ## Milestone 0 — repository and workspace
 
@@ -8,16 +8,18 @@ Status reflects evidence in the repository, not intended work.
 - [x] Six Cargo crates and manifests added.
 - [x] Slint UI source added.
 - [x] SQLite schema and tab model source added.
-- [ ] Rust formatting, check, and tests run on a Rust-enabled host.
+- [x] `cargo fmt --all --check` passed on a GitHub Actions Linux runner.
+- [ ] `cargo check --workspace --locked` and `cargo test --workspace --locked` complete successfully.
+- [ ] Windows-target Rust type-check completes successfully (this check does not compile the C++ bridge).
 
 ## Milestone 1 — first WinCairo view
 
 - [x] Inspect upstream WinCairo WKView header and implementation.
-- [x] Add C++ bridge calling public WKView/WKPage APIs.
+- [x] Add C++ bridge calling the public WKView/WKPage APIs.
 - [x] Add Rust ownership wrapper and navigation event callback ABI.
 - [x] Add Slint raw HWND extraction and geometry synchronization.
 - [ ] Compile bridge with MSVC against a real WebKit SDK.
-- [ ] Verify exports in the exact WebKit2.dll.
+- [ ] Verify required exports in the exact WebKit2.dll.
 - [ ] Launch and navigate to a live HTTPS site.
 - [ ] Verify Back, Forward, Reload, resize, focus, DPI, and teardown.
 
@@ -27,14 +29,14 @@ Status reflects evidence in the repository, not intended work.
 - [ ] Persist history and bookmarks in SQLite.
 - [ ] Downloads and permission UI.
 - [ ] Private browsing with isolated ephemeral website data store.
-- [ ] Password storage using Windows DPAPI and WebAuthn.
+- [ ] Password storage using Windows DPAPI and WebAuthn integration.
 - [ ] Site permissions, content settings, and privacy controls.
 
 ## Milestone 3 — product hardening
 
 - [ ] Crash recovery and process termination handling.
 - [ ] Accessibility and keyboard shortcuts.
-- [ ] Installer, signed releases, and update channel.
+- [ ] Installer, signed releases, update channel.
 - [ ] Native Windows UI automation and end-to-end regression tests.
 
-Current milestone: source implementation is present, but the first working native browser is not accepted until Windows build and runtime tests pass.
+**Current milestone:** source implementation is present, but the first working native browser is not yet accepted because Windows build/runtime tests remain outstanding.

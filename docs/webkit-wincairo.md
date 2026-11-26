@@ -49,4 +49,4 @@ If the import library or DLL does not export a required symbol, stop and reconci
 
 ## Runtime deployment
 
-Keep WebKit2.dll, support/runtime DLLs, and helper processes from one build together. Ensure the process launcher can resolve helper executables and DLLs. Do not commit WebKit binaries. Review upstream WebKit licensing and notices before redistributing runtime files.
+Keep WebKit2.dll, support/runtime DLLs, and helper processes from one build together. Set WEBKIT_RUNTIME_DIR to that directory and launch with scripts/run-nivora.ps1; the script adds the matching runtime directory to PATH before starting Nivora. Ensure the process launcher can resolve helper executables and DLLs. Do not commit WebKit binaries. Review upstream WebKit licensing and notices before redistributing runtime files.

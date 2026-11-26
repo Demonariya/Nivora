@@ -19,7 +19,7 @@ Nivora uses the official WebKit WinCairo port through its native WKView C API. T
 
 Windows 11 x64, Rust stable 1.88+, Visual Studio with Desktop development with C++ and Windows SDK, CMake, Ninja, Git, Perl, Python 3.11, Ruby, LLVM, gperf, and a locally built official WebKit WinCairo SDK.
 
-Read docs/webkit-wincairo.md. Run scripts/setup-windows.ps1, then scripts/build-webkit.ps1. Set WEBKIT_INCLUDE_DIR to the include directory containing WebKit/WKBase.h, WEBKIT_LIB_DIR to the directory containing WebKit2.lib, and WEBKIT_RUNTIME_DIR to the directory containing the matching WebKit2.dll for native CI export verification. Then run cargo fmt --all --check, cargo check --workspace, cargo test --workspace, and cargo build --release -p nivora-app.
+Read docs/webkit-wincairo.md. Run scripts/setup-windows.ps1, then scripts/build-webkit.ps1. Set WEBKIT_INCLUDE_DIR to the include directory containing WebKit/WKBase.h, WEBKIT_LIB_DIR to the directory containing WebKit2.lib, and WEBKIT_RUNTIME_DIR to the directory containing the matching WebKit2.dll for native CI export verification. Then run cargo fmt --all --check, cargo check --workspace, cargo test --workspace, and cargo build --release -p nivora-app. Set WEBKIT_RUNTIME_DIR to the matching runtime folder and launch with scripts/run-nivora.ps1 so WebKit2.dll and its helper processes are discoverable.
 
 The Windows build fails if required WebKit headers or the import library are missing. The non-Windows Rust path explicitly reports WinCairo as unavailable; it is not a substitute engine. CI also performs a Windows-target Rust type-check; that explicit check-only mode does not compile or link the C++ bridge.
 

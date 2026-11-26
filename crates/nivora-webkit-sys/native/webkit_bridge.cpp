@@ -123,6 +123,8 @@ extern "C" NivoraWebKitView* nivora_webkit_view_create(
     self->page = WKViewGetPage(self->view);
     self->child_window = WKViewGetWindow(self->view);
     if (!self->page || !self->child_window) {
+        if (self->page)
+            WKPageClose(self->page);
         WKRelease(self->view);
         delete self;
         return nullptr;
@@ -143,8 +145,14 @@ extern "C" NivoraWebKitView* nivora_webkit_view_create(
     WKViewSetParentWindow(self->view, parent_window);
     WKViewWindowAncestryDidChange(self->view);
     WKViewSetIsInWindow(self->view, true);
-    SetWindowPos(self->child_window, nullptr, x, y, width, height,
-        SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    if (!SetWindowPos(self->child_window, nullptr, x, y, width, height,
+            SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW)) {
+        WKViewSetIsInWindow(self->view, false);
+        WKPageClose(self->page);
+        WKRelease(self->view);
+        delete self;
+        return nullptr;
+    }
     return self;
 }
 
@@ -152,6 +160,8 @@ extern "C" void nivora_webkit_view_destroy(NivoraWebKitView* self)
 {
     if (!self)
         return;
+    if (self->view)
+        WKViewSetIsInWindow(self->view, false);
     if (self->page)
         WKPageClose(self->page);
     if (self->view)

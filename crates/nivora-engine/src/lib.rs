@@ -5,7 +5,8 @@ use std::ffi::{CStr, c_char, c_void};
 use nivora_webkit_sys::WebKitView;
 pub use nivora_webkit_sys::{
     LOAD_PROGRESS_CHANGED, NAVIGATION_COMMITTED, NAVIGATION_FAILED, NAVIGATION_FINISHED,
-    NAVIGATION_STARTED, PAGE_TITLE_CHANGED,
+    NAVIGATION_STARTED, PAGE_TITLE_CHANGED, KeyboardShortcutCallback, install_keyboard_shortcuts,
+    uninstall_keyboard_shortcuts,
 };
 
 pub type NavigationCallback = unsafe extern "C" fn(*mut c_void, i32, *const c_char, f64);

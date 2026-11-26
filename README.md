@@ -60,3 +60,8 @@ Nivora registers a UI-thread-scoped Win32 message hook so browser shortcuts rema
 | Ctrl+Shift+Tab | Switch to the previous tab |
 
 The hook consumes only these browser shortcuts and is removed before its callback context is released. Native WinCairo runtime behavior still requires validation on a Windows machine with the matching SDK.
+
+
+### Tab reordering
+
+Tabs in the horizontal tab strip can be reordered by dragging one tab onto another. Reordering uses stable internal tab IDs, so the active page and its WebKit view remain associated with the same tab while the tab order changes. The vertical tab layout is not yet a full tab list. Native WinCairo runtime validation is still pending.

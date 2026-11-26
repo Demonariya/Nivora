@@ -39,6 +39,7 @@ fn main() {
         "WKBase.h",
         "WKPage.h",
         "WKPageConfigurationRef.h",
+        "WKFramePolicyListener.h",
         "WKPageNavigationClient.h",
         "WKString.h",
         "WKType.h",

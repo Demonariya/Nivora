@@ -17,6 +17,7 @@ $required = @(
     'WKViewSetIsInWindow',
     'WKPageConfigurationCreate',
     'WKPageSetPageNavigationClient',
+    'WKFramePolicyListenerUse',
     'WKPageLoadURL',
     'WKPageGoBack',
     'WKPageGoForward',

@@ -5,6 +5,7 @@
 #include <WebKit/WKBase.h>
 #include <WebKit/WKPage.h>
 #include <WebKit/WKPageConfigurationRef.h>
+#include <WebKit/WKFramePolicyListener.h>
 #include <WebKit/WKPageNavigationClient.h>
 #include <WebKit/WKString.h>
 #include <WebKit/WKType.h>
@@ -60,6 +61,26 @@ static void emit_navigation_event(WKPageRef page, int event_kind, const void* cl
         return;
     const std::string url = copy_page_url(page);
     self->callback(self->callback_context, event_kind, url.c_str());
+}
+
+static void decide_policy_for_action(
+    WKPageRef,
+    WKNavigationActionRef,
+    WKFramePolicyListenerRef listener,
+    WKTypeRef,
+    const void*)
+{
+    WKFramePolicyListenerUse(listener);
+}
+
+static void decide_policy_for_response(
+    WKPageRef,
+    WKNavigationResponseRef,
+    WKFramePolicyListenerRef listener,
+    WKTypeRef,
+    const void*)
+{
+    WKFramePolicyListenerUse(listener);
 }
 
 static void did_start_provisional(WKPageRef page, WKNavigationRef, WKTypeRef, const void* client_info)
@@ -133,6 +154,8 @@ extern "C" NivoraWebKitView* nivora_webkit_view_create(
     self->navigation_client = { };
     self->navigation_client.base.version = 0;
     self->navigation_client.base.clientInfo = self;
+    self->navigation_client.decidePolicyForNavigationAction = decide_policy_for_action;
+    self->navigation_client.decidePolicyForNavigationResponse = decide_policy_for_response;
     self->navigation_client.didStartProvisionalNavigation = did_start_provisional;
     self->navigation_client.didCommitNavigation = did_commit;
     self->navigation_client.didFinishNavigation = did_finish;

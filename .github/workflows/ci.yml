@@ -19,25 +19,31 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+      - name: Install Linux build dependencies for Slint
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libfontconfig1-dev libfreetype6-dev libxkbcommon-dev libwayland-dev libx11-dev libx11-xcb-dev libxcb1-dev libxrandr-dev libxi-dev libxcursor-dev libxinerama-dev libxkbcommon-x11-dev libegl1-mesa-dev libgl1-mesa-dev
+      - name: Resolve dependency lockfile
+        run: cargo generate-lockfile
       - name: Apply rustfmt on main pushes
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: cargo fmt --all
-      - name: Commit rustfmt output
+      - name: Commit rustfmt and lockfile output
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add crates
+          git add crates Cargo.lock
           if ! git diff --cached --quiet; then
-            git commit -m "style: apply rustfmt"
+            git commit -m "build: lock Rust dependencies and format source"
             git push
           fi
       - name: Verify formatting
         run: cargo fmt --all --check
       - name: Check workspace
-        run: cargo check --workspace
+        run: cargo check --workspace --locked
       - name: Test workspace
-        run: cargo test --workspace
+        run: cargo test --workspace --locked
 
   windows-native:
     name: Windows WinCairo integration (manual; requires pre-provisioned self-hosted SDK runner)

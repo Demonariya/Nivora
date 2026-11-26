@@ -26,6 +26,7 @@ Status labels describe evidence in this repository, not intended work.
 - [ ] Follow Windows System appearance automatically.
 - [x] Independent WKView/WKPage ownership per tab, lazy view creation, tab switching, and close-time teardown (source implementation; native runtime validation pending).
 - [x] Main-page title updates from WKPageStateClient, including background-tab title retention.
+- [x] Per-tab close controls and middle-click tab closing (source implementation; native runtime validation pending).
 - [ ] Favicon retrieval and tab drag-and-drop.
 - [x] Engine-reported loading progress from WKPageGetEstimatedProgress.
 - [ ] Search suggestions and security/TLS indicators.
@@ -56,7 +57,8 @@ Status labels describe evidence in this repository, not intended work.
 ## Milestone 3 — product hardening
 
 - [ ] Crash recovery and process termination handling.
-- [ ] Accessibility and keyboard shortcuts.
+- [ ] Keyboard shortcuts (Ctrl+T, Ctrl+W, Ctrl+Tab, Ctrl+Shift+Tab); native WebKit child-window focus routing still needs a Win32 implementation.
+- [ ] Accessibility keyboard traversal tests.
 - [ ] Installer, signed releases, update channel.
 - [ ] Native Windows UI automation and end-to-end regression tests.
 

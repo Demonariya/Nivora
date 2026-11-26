@@ -14,7 +14,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     #[cfg(not(windows))]
     {
         ui.set_page_status(
-            "WinCairo WebKit is Windows-only. Run Nivora on Windows with WEBKIT_INCLUDE_DIR and WEBKIT_LIB_DIR configured.",
+            "WinCairo WebKit is Windows-only. Run Nivora on Windows with WEBKIT_INCLUDE_DIR and WEBKIT_LIB_DIR configured.".into(),
         );
         ui.run()?;
     }
@@ -59,25 +59,25 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
         match kind {
             NAVIGATION_STARTED => {
                 ui.set_is_loading(true);
-                ui.set_page_status("Loading…");
+                ui.set_page_status("Loading…".into());
             }
             NAVIGATION_COMMITTED => {
                 if !url.is_empty() {
                     ui.set_address(url.into());
                 }
-                ui.set_page_status("Connected");
+                ui.set_page_status("Connected".into());
             }
             NAVIGATION_FINISHED => {
                 ui.set_is_loading(false);
                 if !url.is_empty() {
                     ui.set_address(url.into());
                 }
-                ui.set_page_status("Ready");
+                ui.set_page_status("Ready".into());
             }
             NAVIGATION_FAILED => {
                 ui.set_is_loading(false);
                 ui.set_page_status(
-                    "Navigation failed. Check the address or WebKit network process.",
+                    "Navigation failed. Check the address or WebKit network process.".into(),
                 );
             }
             _ => {}
@@ -156,7 +156,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                 };
                 let RawWindowHandle::Win32(win32) = raw_handle.as_raw() else {
                     ui.set_page_status(
-                        "Slint did not provide a Win32 HWND; WebKit embedding is unavailable.",
+                        "Slint did not provide a Win32 HWND; WebKit embedding is unavailable.".into(),
                     );
                     return;
                 };
@@ -177,7 +177,7 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                                 format!("Initial navigation failed: {error}").into(),
                             );
                         } else {
-                            ui.set_page_status("WebKit view created; loading initial page…");
+                            ui.set_page_status("WebKit view created; loading initial page…".into());
                         }
                         engine.focus();
                         *browser.borrow_mut() = Some(engine);

@@ -26,7 +26,8 @@ pub fn run() -> Result<(), Box<dyn Error>> {
 fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
     use nivora_engine::{
         LOAD_PROGRESS_CHANGED, NAVIGATION_COMMITTED, NAVIGATION_FAILED, NAVIGATION_FINISHED,
-        NAVIGATION_STARTED, PAGE_TITLE_CHANGED, WebKitEngine, callback_url, normalize_address,
+        NAVIGATION_STARTED, PAGE_TITLE_CHANGED, KeyboardShortcutCallback, WebKitEngine,
+        callback_url, install_keyboard_shortcuts, normalize_address, uninstall_keyboard_shortcuts,
     };
     use raw_window_handle_06::{HasWindowHandle, RawWindowHandle};
     use slint::{ModelRc, Timer, TimerMode, VecModel};
@@ -116,6 +117,49 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             .map(|tab| slint::SharedString::from(tab.title.borrow().as_str()))
             .collect::<Vec<_>>();
         ui.set_tab_titles(ModelRc::new(VecModel::from(titles)));
+    }
+
+    fn close_tab(state: &mut BrowserState, index: usize) {
+        if index >= state.tabs.len() {
+            return;
+        }
+        if state.tabs.len() == 1 {
+            let tab = state.active_tab_mut();
+            *tab.url.borrow_mut() = "about:blank".into();
+            *tab.title.borrow_mut() = "New Tab".into();
+            tab.title_dirty.set(true);
+            tab.is_loading.set(false);
+            tab.progress.set(0.0);
+            if let Some(engine) = tab.engine.as_mut() {
+                let _ = engine.navigate("about:blank");
+            }
+            return;
+        }
+
+        // Destroy the native view before releasing its callback context.
+        state.tabs[index].engine.take();
+        state.tabs[index].event_sink.take();
+        state.tabs.remove(index);
+        if index < state.active {
+            state.active -= 1;
+        } else if index == state.active {
+            state.active = index.min(state.tabs.len() - 1);
+        }
+    }
+
+    fn activate_tab(state: &mut BrowserState, index: usize) {
+        if index >= state.tabs.len() {
+            return;
+        }
+        state.active = index;
+        for (tab_index, tab) in state.tabs.iter_mut().enumerate() {
+            if let Some(engine) = tab.engine.as_mut() {
+                engine.set_visible(tab_index == index);
+            }
+        }
+        if let Some(engine) = state.active_tab_mut().engine.as_mut() {
+            engine.focus();
+        }
     }
 
     fn sync_ui(ui: &MainWindow, state: &BrowserState) {
@@ -262,17 +306,15 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
         let active_tab_id = active_tab_id.clone();
         let ui_weak = ui.as_weak();
         ui.on_select_tab(move |index| {
-            let mut state = browser.borrow_mut();
-            if index < 0 || index as usize >= state.tabs.len() {
+            if index < 0 {
                 return;
             }
-            state.active = index as usize;
-            let id = state.active_tab().id;
-            active_tab_id.set(id);
-            if let Some(engine) = state.active_tab_mut().engine.as_mut() {
-                engine.set_visible(true);
-                engine.focus();
+            let mut state = browser.borrow_mut();
+            if index as usize >= state.tabs.len() {
+                return;
             }
+            activate_tab(&mut state, index as usize);
+            active_tab_id.set(state.active_tab().id);
             if let Some(ui) = ui_weak.upgrade() {
                 sync_ui(&ui, &state);
                 ui.set_page_status("Tab switched".into());
@@ -284,37 +326,13 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
         let active_tab_id = active_tab_id.clone();
         let ui_weak = ui.as_weak();
         ui.on_close_tab(move |requested_index| {
-            let mut state = browser.borrow_mut();
-            if requested_index < 0 || requested_index as usize >= state.tabs.len() {
+            if requested_index < 0 {
                 return;
             }
-            let index = requested_index as usize;
-            if state.tabs.len() == 1 {
-                let tab = state.active_tab_mut();
-                *tab.url.borrow_mut() = "about:blank".into();
-                *tab.title.borrow_mut() = "New Tab".into();
-                tab.title_dirty.set(true);
-                tab.is_loading.set(false);
-                tab.progress.set(0.0);
-                if let Some(engine) = tab.engine.as_mut() {
-                    let _ = engine.navigate("about:blank");
-                }
-            } else {
-                // Destroy the native view before releasing its callback context.
-                state.tabs[index].engine.take();
-                state.tabs[index].event_sink.take();
-                state.tabs.remove(index);
-                if index < state.active {
-                    state.active -= 1;
-                } else if index == state.active {
-                    state.active = index.min(state.tabs.len() - 1);
-                }
-            }
+            let mut state = browser.borrow_mut();
+            close_tab(&mut state, requested_index as usize);
             active_tab_id.set(state.active_tab().id);
-            if let Some(engine) = state.active_tab_mut().engine.as_mut() {
-                engine.set_visible(true);
-                engine.focus();
-            }
+            activate_tab(&mut state, state.active);
             if let Some(ui) = ui_weak.upgrade() {
                 sync_ui(&ui, &state);
                 ui.set_page_status("Tab closed".into());
@@ -346,6 +364,45 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
         });
     }
 
+    struct ShortcutContext {
+        browser: Rc<RefCell<BrowserState>>,
+        active_tab_id: Rc<Cell<u64>>,
+        ui: slint::Weak<MainWindow>,
+    }
+
+    unsafe extern "C" fn on_keyboard_shortcut(context: *mut c_void, action: i32) {
+        if context.is_null() {
+            return;
+        }
+        // SAFETY: the boxed context lives until the Win32 message hook is removed.
+        let shortcut = unsafe { &*(context.cast::<ShortcutContext>()) };
+        let mut state = shortcut.browser.borrow_mut();
+        match action {
+            1 => state.open_tab(),
+            2 => close_tab(&mut state, state.active),
+            3 if !state.tabs.is_empty() => {
+                let next = (state.active + 1) % state.tabs.len();
+                activate_tab(&mut state, next);
+            }
+            4 if !state.tabs.is_empty() => {
+                let previous = if state.active == 0 { state.tabs.len() - 1 } else { state.active - 1 };
+                activate_tab(&mut state, previous);
+            }
+            _ => return,
+        }
+        shortcut.active_tab_id.set(state.active_tab().id);
+        if let Some(ui) = shortcut.ui.upgrade() {
+            sync_ui(&ui, &state);
+            let status = match action {
+                1 => "New tab",
+                2 => "Tab closed",
+                3 | 4 => "Tab switched",
+                _ => "Ready",
+            };
+            ui.set_page_status(status.into());
+        }
+    }
+
     // Release every WebKit page while the parent HWND is still alive.
     {
         let browser = browser.clone();
@@ -359,11 +416,16 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
         });
     }
 
+    let shortcut_context: Rc<RefCell<Option<Box<ShortcutContext>>>> = Rc::new(RefCell::new(None));
+    let shortcut_install_attempted = Rc::new(Cell::new(false));
+
     let timer = Timer::default();
     {
         let ui = ui.clone_strong();
         let browser = browser.clone();
         let active_tab_id = active_tab_id.clone();
+        let shortcut_context = shortcut_context.clone();
+        let shortcut_install_attempted = shortcut_install_attempted.clone();
         let host_hwnd = Cell::new(std::ptr::null_mut::<c_void>());
         timer.start(TimerMode::Repeated, Duration::from_millis(80), move || {
             let x = ui.get_browser_x().round() as i32;
@@ -387,6 +449,23 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                     return;
                 };
                 host_hwnd.set(win32.hwnd.get() as *mut c_void);
+            }
+
+            if !shortcut_install_attempted.replace(true) {
+                let context = Box::new(ShortcutContext {
+                    browser: browser.clone(),
+                    active_tab_id: active_tab_id.clone(),
+                    ui: ui.as_weak(),
+                });
+                let context_ptr = (&*context as *const ShortcutContext).cast_mut().cast::<c_void>();
+                // SAFETY: context is retained until after the UI-thread hook is uninstalled.
+                if unsafe {
+                    install_keyboard_shortcuts(host_hwnd.get(), on_keyboard_shortcut as KeyboardShortcutCallback, context_ptr)
+                } {
+                    *shortcut_context.borrow_mut() = Some(context);
+                } else {
+                    ui.set_page_status("Keyboard shortcut hook could not be installed.".into());
+                }
             }
 
             let mut state = browser.borrow_mut();
@@ -454,6 +533,9 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
 
     let result = ui.run();
     timer.stop();
+    // SAFETY: remove the thread hook before releasing its callback context.
+    unsafe { uninstall_keyboard_shortcuts() };
+    shortcut_context.borrow_mut().take();
     {
         let mut state = browser.borrow_mut();
         for tab in &mut state.tabs {

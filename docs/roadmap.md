@@ -10,7 +10,7 @@ Status labels describe evidence in this repository, not intended work.
 - [x] SQLite schema and tab model source added.
 - [x] `cargo fmt --all --check` passed on a GitHub Actions Linux runner.
 - [ ] `cargo check --workspace --locked` and `cargo test --workspace --locked` complete successfully.
-- [ ] Windows-target Rust type-check completes successfully (this check does not compile the C++ bridge).
+- [x] Windows-target Rust type-check passed on GitHub Actions (this check does not compile the C++ bridge).
 
 ## Milestone 1 — first WinCairo view
 

@@ -331,8 +331,9 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
             }
             let mut state = browser.borrow_mut();
             close_tab(&mut state, requested_index as usize);
+            let active = state.active;
+            activate_tab(&mut state, active);
             active_tab_id.set(state.active_tab().id);
-            activate_tab(&mut state, state.active);
             if let Some(ui) = ui_weak.upgrade() {
                 sync_ui(&ui, &state);
                 ui.set_page_status("Tab closed".into());
@@ -379,13 +380,20 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
         let mut state = shortcut.browser.borrow_mut();
         match action {
             1 => state.open_tab(),
-            2 => close_tab(&mut state, state.active),
+            2 => {
+                let active = state.active;
+                close_tab(&mut state, active);
+            }
             3 if !state.tabs.is_empty() => {
                 let next = (state.active + 1) % state.tabs.len();
                 activate_tab(&mut state, next);
             }
             4 if !state.tabs.is_empty() => {
-                let previous = if state.active == 0 { state.tabs.len() - 1 } else { state.active - 1 };
+                let previous = if state.active == 0 {
+                    state.tabs.len() - 1
+                } else {
+                    state.active - 1
+                };
                 activate_tab(&mut state, previous);
             }
             _ => return,
@@ -460,7 +468,11 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                 let context_ptr = (&*context as *const ShortcutContext).cast_mut().cast::<c_void>();
                 // SAFETY: context is retained until after the UI-thread hook is uninstalled.
                 if unsafe {
-                    install_keyboard_shortcuts(host_hwnd.get(), on_keyboard_shortcut as KeyboardShortcutCallback, context_ptr)
+                    install_keyboard_shortcuts(
+                        host_hwnd.get(),
+                        on_keyboard_shortcut as KeyboardShortcutCallback,
+                        context_ptr,
+                    )
                 } {
                     *shortcut_context.borrow_mut() = Some(context);
                 } else {
@@ -512,7 +524,9 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                         ui.set_page_status("WebKit tab created".into());
                     }
                     Err(error) => {
-                        ui.set_page_status(format!("WebKit initialization failed: {error}").into());
+                        ui.set_page_status(
+                            format!("WebKit initialization failed: {error}").into(),
+                        );
                         return;
                     }
                 }

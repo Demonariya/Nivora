@@ -283,8 +283,12 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
         let browser = browser.clone();
         let active_tab_id = active_tab_id.clone();
         let ui_weak = ui.as_weak();
-        ui.on_close_active_tab(move || {
+        ui.on_close_tab(move |requested_index| {
             let mut state = browser.borrow_mut();
+            if requested_index < 0 || requested_index as usize >= state.tabs.len() {
+                return;
+            }
+            let index = requested_index as usize;
             if state.tabs.len() == 1 {
                 let tab = state.active_tab_mut();
                 *tab.url.borrow_mut() = "about:blank".into();
@@ -296,14 +300,21 @@ fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
                     let _ = engine.navigate("about:blank");
                 }
             } else {
-                let index = state.active;
-                // Explicitly destroy the native view before its callback context.
+                // Destroy the native view before releasing its callback context.
                 state.tabs[index].engine.take();
                 state.tabs[index].event_sink.take();
                 state.tabs.remove(index);
-                state.active = index.min(state.tabs.len() - 1);
+                if index < state.active {
+                    state.active -= 1;
+                } else if index == state.active {
+                    state.active = index.min(state.tabs.len() - 1);
+                }
             }
             active_tab_id.set(state.active_tab().id);
+            if let Some(engine) = state.active_tab_mut().engine.as_mut() {
+                engine.set_visible(true);
+                engine.focus();
+            }
             if let Some(ui) = ui_weak.upgrade() {
                 sync_ui(&ui, &state);
                 ui.set_page_status("Tab closed".into());

@@ -1,6 +1,7 @@
 fn main() {
     println!("cargo:rustc-check-cfg=cfg(cef_sdk_available)");
     println!("cargo:rerun-if-env-changed=NIVORA_CEF_ROOT");
+    println!("cargo:rerun-if-env-changed=NIVORA_CEF_BOOTSTRAP");
 
     // SDK validation is opt-in so Linux CI and developers without the large
     // binary distribution can compile the workspace without pretending CEF runs.
@@ -17,7 +18,6 @@ fn main() {
         "include/cef_version_info.h",
         "Release/libcef.dll",
         "Release/libcef.lib",
-        "Release/bootstrap.exe",
         "Resources/icudtl.dat",
         "Resources/cef.pak",
     ];

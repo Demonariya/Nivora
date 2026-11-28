@@ -81,14 +81,15 @@ jobs:
         run: cargo build --release -p nivora-app
 
   windows-cef-native:
-    name: Windows CEF native host build (manual; pre-provisioned CEF SDK runner)
+    name: Windows CEF bootstrap client build (manual; pre-provisioned SDK + bootstrap)
     if: ${{ github.event_name == 'workflow_dispatch' && vars.CEF_SDK_READY == 'true' }}
     runs-on: [self-hosted, Windows, X64, cef-windows-x64]
     steps:
       - uses: actions/checkout@v5
       - uses: ilammy/msvc-dev-cmd@v1
-      - name: Build sandboxed CEF native host
+      - name: Build CEF client DLL and stage matching sandbox bootstrap
         shell: pwsh
         env:
           NIVORA_CEF_ROOT: ${{ vars.NIVORA_CEF_ROOT }}
+          NIVORA_CEF_BOOTSTRAP: ${{ vars.NIVORA_CEF_BOOTSTRAP }}
         run: ./scripts/build-cef-native.ps1

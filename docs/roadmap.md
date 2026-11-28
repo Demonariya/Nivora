@@ -13,6 +13,8 @@ Status labels describe evidence in this repository, not intended work.
 - [x] `cargo test --workspace --locked` passed on GitHub Actions Linux.
 - [x] Windows-target Rust type-check passed on GitHub Actions (this check does not compile the C++ bridge).
 - [x] Windows rendering-engine candidates evaluated at architecture/documentation level (`docs/rendering-engine-evaluation.md`).
+- [x] Engine-neutral Rust backend/view traits added to nivora-engine; existing WebKitEngine preserved behind WebKitBackend.
+- [x] Conservative engine capability reporting and unit test added (CI execution pending).
 - [ ] CEF Chrome-runtime spike built and tested against a pinned Windows distribution.
 - [ ] Production rendering backend decision accepted by Windows runtime tests.
 - [ ] Android application/client repository and shared-core integration located or established.
@@ -78,4 +80,4 @@ Status labels describe evidence in this repository, not intended work.
 - [ ] Installer, signed releases, update channel.
 - [ ] Native Windows UI automation and end-to-end regression tests.
 
-**Current milestone:** architecture evaluation is documented. The existing WebKit implementation remains the active baseline. CEF is the leading candidate, but a pinned Chrome-runtime Windows spike and extension compatibility tests are required before any production backend switch. The first working native browser is not yet accepted because Windows build/runtime tests remain outstanding.
+**Current milestone:** the engine-neutral Rust backend contract is implemented in source and documented; CI has not yet reported on this commit. The existing WebKit implementation remains the active baseline. CEF is the leading candidate, but a pinned Chrome-runtime Windows spike and extension compatibility tests are required before any production backend switch. The first working native browser is not yet accepted because Windows build/runtime tests remain outstanding.

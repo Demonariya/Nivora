@@ -22,8 +22,8 @@ Status labels describe evidence in this repository, not intended work.
 - [ ] Download/provision the pinned CEF Standard Distribution and its matching bootstrap executable separately on a Windows x64 runner.
 - [ ] Compile the bootstrap-compatible CEF client DLL with MSVC against the pinned distribution.
 - [ ] Launch the official bootstrap + Nivora client DLL and verify sandboxed renderer/GPU child processes, navigation, title updates, and clean shutdown.
-- [ ] Implement bootstrap-compatible Rust application DLL entrypoint and CEF startup dispatch before Slint initialization.
-- [ ] Integrate CEF external message pump with the Slint UI event loop and validate HWND parenting/lifetime.
+- [x] Add Rust application cdylib export and CEF bootstrap handoff to the Slint shell (native Windows build/launch pending).
+- [ ] Initialize CEF browser process and integrate its message pump with the Slint UI event loop.\n- [ ] Embed a CEF browser HWND in Slint and validate resize/focus/DPI/lifetime.
 - [ ] Production rendering backend decision accepted by Windows runtime tests.
 - [ ] Android application/client repository and shared-core integration located or established.
 
@@ -88,4 +88,4 @@ Status labels describe evidence in this repository, not intended work.
 - [ ] Installer, signed releases, update channel.
 - [ ] Native Windows UI automation and end-to-end regression tests.
 
-**Current milestone:** the engine-neutral Rust backend contract, pinned CEF SDK validation, and a bootstrap-compatible standalone CEF smoke-client source project are committed. The bootstrap-based native client DLL has not yet been compiled or launched on Windows. It is a separate smoke-test client and is not yet embedded in Slint or called by the Rust application. CEF 138+ sandboxing requires the official bootstrap executable; the legacy cef_sandbox.lib approach is not used. The existing WebKit implementation remains the only production runtime. Windows build/runtime tests and extension compatibility evidence are required before any backend switch.
+**Current milestone:** the Rust application now builds as a cdylib for the CEF bootstrap path, and the native bootstrap client dispatches CEF child processes before handing the browser-process path to the Rust/Slint shell. This source path has not yet been compiled or launched on Windows. CEF is deliberately not initialized in this handoff milestone, so no CEF browser view is created yet. The normal desktop build retains WebKit as the only production rendering runtime. The next gates are CEF browser initialization, Slint event-loop integration, HWND embedding, and Windows runtime verification.

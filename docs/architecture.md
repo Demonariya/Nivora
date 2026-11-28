@@ -44,3 +44,11 @@ WebKitBackend adapts the existing WebKitEngine to this contract. The original We
 The traits do not require Send or Sync because the current native view is UI-thread-affine. Native HWNDs and callback pointers cross only the backend creation boundary. The caller remains responsible for callback/context lifetime and for destroying the view on the engine's required thread.
 
 A future CEF implementation belongs in a separate native sys crate and must implement EngineBackend/EngineView. CEF-specific extension interfaces must be exposed through a separate capability-gated extension subsystem; the generic EngineView must not grow fake Chrome API methods. The app should migrate from the concrete WebKitEngine to a selected EngineBackend only after the CEF spike has passed Windows runtime and extension acceptance tests.
+
+## CEF 138+ Windows bootstrap constraint
+
+The pinned CEF 156 distribution uses the post-M138 bootstrap model. The official bootstrap.exe is the process image; it loads a client DLL and calls its exported RunWinMain function, passing the sandbox information created by the bootstrap. The client DLL must pass that same pointer to CefExecuteProcess and CefInitialize. The legacy third-party cef_sandbox.lib executable-linking approach is not supported for this distribution.
+
+This changes the eventual Nivora executable boundary: a normal Rust .exe cannot simply be linked to CEF and keep being the bootstrap process. The integrated application must expose a bootstrap-compatible DLL entrypoint. The intended Rust-first shape is a small native CEF ABI layer plus a Rust application DLL (or a thin C++ exported entrypoint that calls a Rust export), with the official bootstrap executable staged as the user-facing process. The existing Rust executable can remain a development launcher only if its role and sandbox boundary are explicit.
+
+CEF must initialize and execute secondary-process dispatch before Slint startup. For browser-process mode, the intended event-loop integration is CEF's external message pump scheduled from the Slint/UI thread; do not run both CefRunMessageLoop and Slint's event loop on the same thread. CEF callbacks, browser HWND ownership, Slint HWND parenting, resize/focus and shutdown ordering must be validated on Windows before replacing WebKit. See docs/cef-bootstrap-integration.md.

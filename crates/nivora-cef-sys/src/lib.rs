@@ -39,8 +39,8 @@ pub const fn sdk_available() -> bool {
 
 /// Validate the standard CEF Windows x64 distribution layout and version.
 ///
-/// Set NIVORA_CEF_ROOT to the extracted distribution root containing
-/// include/, Release/bootstrap.exe, Release/libcef.dll and Resources/.
+/// Set NIVORA_CEF_ROOT to the standard distribution root containing
+/// include/, Release/libcef.dll, Release/libcef.lib and Resources/.
 pub fn validate_sdk(root: impl AsRef<std::path::Path>) -> Result<(), CefSdkError> {
     let root = root.as_ref();
     if !root.is_dir() {
@@ -54,7 +54,6 @@ pub fn validate_sdk(root: impl AsRef<std::path::Path>) -> Result<(), CefSdkError
         ("include/cef_version_info.h", "include/cef_version_info.h"),
         ("Release/libcef.dll", "Release/libcef.dll"),
         ("Release/libcef.lib", "Release/libcef.lib"),
-        ("Release/bootstrap.exe", "Release/bootstrap.exe"),
         ("Resources/icudtl.dat", "Resources/icudtl.dat"),
         ("Resources/cef.pak", "Resources/cef.pak"),
     ] {
@@ -115,7 +114,7 @@ mod tests {
     }
 
     #[test]
-    fn validates_bootstrap_distribution_layout() {
+    fn validates_standard_distribution_layout() {
         let root = std::env::temp_dir().join(format!(
             "nivora-cef-sdk-test-{}",
             std::process::id()
@@ -129,7 +128,6 @@ mod tests {
             "include/cef_version_info.h",
             "Release/libcef.dll",
             "Release/libcef.lib",
-            "Release/bootstrap.exe",
             "Resources/icudtl.dat",
             "Resources/cef.pak",
         ] {

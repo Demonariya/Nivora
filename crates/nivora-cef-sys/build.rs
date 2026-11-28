@@ -15,6 +15,7 @@ fn main() {
         "include/cef_app.h",
         "Release/libcef.dll",
         "Release/libcef.lib",
+        "Release/cef_sandbox.lib",
         "Resources/icudtl.dat",
         "Resources/resources.pak",
     ];

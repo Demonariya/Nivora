@@ -8,13 +8,17 @@ authors.workspace = true
 repository.workspace = true
 build = "build.rs"
 
+[features]
+default = ["webkit"]
+webkit = ["dep:nivora-engine", "dep:nivora-storage"]
+
 [dependencies]
 slint.workspace = true
 raw-window-handle-06 = { package = "raw-window-handle", version = "0.6" }
 
 [target.'cfg(windows)'.dependencies]
-nivora-engine.workspace = true
-nivora-storage.workspace = true
+nivora-engine = { workspace = true, optional = true }
+nivora-storage = { workspace = true, optional = true }
 
 [build-dependencies]
 slint-build = "1.19.1"

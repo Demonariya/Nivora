@@ -19,30 +19,33 @@ The pin matches the CEF Automated Builds page's Current Stable Build entry obser
 2. Select **Windows 64-bit** and download the Standard Distribution for the exact pinned versions above.
 3. Verify the archive checksum shown by the official download page before extraction.
 4. Extract the archive to a stable local path, for example `E:\\SDKs\\cef\\156.0.14`.
-5. Set `NIVORA_CEF_ROOT` to the extracted distribution root (the directory containing `include\\`, `Release\\`, `Resources\\`, and `cmake\\`).
+5. Obtain the matching Windows x64 **sandbox bootstrap.exe** for the same CEF/Chromium build. Depending on the official build layout, this may be supplied as the separate Sandbox Distribution; it is not assumed to be present in the Standard Distribution. Do not mix bootstrap and SDK versions.
+6. Extract the bootstrap and set `NIVORA_CEF_BOOTSTRAP` to its full path.
+7. Set `NIVORA_CEF_ROOT` to the standard distribution root (the directory containing `include\\`, `Release\\`, `Resources\\`, and `cmake\\`).
 
 PowerShell:
 
 ```powershell
 $env:NIVORA_CEF_ROOT = 'E:\SDKs\cef\156.0.14'
+$env:NIVORA_CEF_BOOTSTRAP = 'E:\SDKs\cef\156.0.14-sandbox\Release\bootstrap.exe'
 cargo test -p nivora-cef-sys
 ./scripts/build-cef-native.ps1
 ```
 
-The Rust SDK gate checks the expected headers, runtime DLL, import library, official bootstrap executable, ICU data, resources, and exact CEF/Chromium version macros. A different SDK version is rejected rather than silently accepted.
+The Rust SDK gate validates the standard distribution's headers, runtime DLL, import library, ICU data, resources and exact CEF/Chromium version macros. The native build script separately requires a matching bootstrap executable. A different SDK version is rejected rather than silently accepted.
 
 ## Windows sandbox architecture (CEF 138+)
 
 CEF 138 and newer no longer distribute `cef_sandbox.lib` for ordinary third-party client linking. The supported Windows sandbox integration uses the official `bootstrap.exe`:
 
 - The Nivora CEF client is built as `nivora-cef-host.dll`.
-- The official `Release\\bootstrap.exe` is copied beside it and renamed to `nivora-cef-host.exe`.
+- The matching official `bootstrap.exe` is copied beside it and renamed to `nivora-cef-host.exe`.
 - The bootstrap creates sandbox information in its own executable and passes it to the exported `RunWinMain` entry point.
 - The client DLL forwards that pointer to both `CefExecuteProcess` and `CefInitialize`.
 - The bootstrap executable remains the process image for the browser and sandboxed child processes.
 - Do not create sandbox information inside the client DLL, link the removed legacy sandbox library, or configure a separate `browser_subprocess_path` for this sandboxed mode.
 
-This is materially different from the pre-CEF-138 integration model. The CEF SDK version pin and CMake project must stay aligned with this bootstrap contract.
+This is materially different from the pre-CEF-138 integration model. The CEF SDK version pin, bootstrap binary and CMake project must stay aligned with this contract.
 
 ## Native smoke client
 
@@ -61,13 +64,7 @@ Build:
 ./scripts/build-cef-native.ps1
 ```
 
-Run the staged bootstrap executable:
-
-```powershell
-& .\target\cef-native\out\nivora-cef-host.exe --url=https://example.com
-```
-
-The exact output path can vary with the CMake generator. The build script finds the DLL, stages the matching bootstrap executable beside it, and prints both paths.
+The script prints the exact paths of the staged `nivora-cef-host.exe` bootstrap and matching `nivora-cef-host.dll` client.
 
 ## Current implementation boundary
 
@@ -88,9 +85,9 @@ Not implemented or verified yet:
 
 ## Next acceptance gates
 
-1. Build the native client DLL with the exact pinned SDK on Windows x64.
-2. Confirm the SDK contains the expected official bootstrap binary and run the staged bootstrap/client pair.
-3. Verify browser + renderer/GPU child process startup with the sandbox enabled.
+1. Provision the exact pinned Standard SDK and matching bootstrap binary on Windows x64.
+2. Build the native client DLL with MSVC.
+3. Launch the official bootstrap/client pair and verify sandboxed renderer/GPU child process startup.
 4. Navigate to local and HTTPS pages; verify title updates and clean shutdown.
 5. Design and implement Rust executable startup dispatch through the bootstrap architecture.
 6. Integrate CEF browser HWND ownership, resize, focus, DPI and message-loop scheduling with Slint.

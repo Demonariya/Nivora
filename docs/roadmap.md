@@ -15,7 +15,10 @@ Status labels describe evidence in this repository, not intended work.
 - [x] Windows rendering-engine candidates evaluated at architecture/documentation level (`docs/rendering-engine-evaluation.md`).
 - [x] Engine-neutral Rust backend/view traits added to nivora-engine; existing WebKitEngine preserved behind WebKitBackend.
 - [x] Conservative engine capability reporting and unit test added (CI execution pending).
-- [ ] CEF Chrome-runtime spike built and tested against a pinned Windows distribution.
+- [x] Add isolated `nivora-cef-sys` SDK-gate crate with pinned CEF 156.0.14 / Chromium 156.0.8078.48 and exact SDK layout/version validation.
+- [x] Document Windows x64 CEF distribution setup and native integration acceptance gates (`docs/cef-sdk-setup.md`).
+- [ ] Download/provision the pinned CEF distribution on a Windows x64 runner.
+- [ ] Build and launch a CEF Chrome-runtime host against the pinned Windows distribution.
 - [ ] Production rendering backend decision accepted by Windows runtime tests.
 - [ ] Android application/client repository and shared-core integration located or established.
 
@@ -80,4 +83,4 @@ Status labels describe evidence in this repository, not intended work.
 - [ ] Installer, signed releases, update channel.
 - [ ] Native Windows UI automation and end-to-end regression tests.
 
-**Current milestone:** the engine-neutral Rust backend contract is implemented in source and documented; CI has not yet reported on this commit. The existing WebKit implementation remains the active baseline. CEF is the leading candidate, but a pinned Chrome-runtime Windows spike and extension compatibility tests are required before any production backend switch. The first working native browser is not yet accepted because Windows build/runtime tests remain outstanding.
+**Current milestone:** the engine-neutral Rust backend contract and a CEF SDK validation scaffold are implemented in source and documented. The CEF crate is not a browser backend and does not initialize or link Chromium. The exact pinned SDK has not yet been provisioned or compiled on Windows. The existing WebKit implementation remains the active runtime baseline; a native CEF host and extension compatibility tests are required before any production backend switch. The first working native browser is not yet accepted because Windows build/runtime tests remain outstanding.

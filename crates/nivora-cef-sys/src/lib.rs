@@ -115,10 +115,7 @@ mod tests {
 
     #[test]
     fn validates_standard_distribution_layout() {
-        let root = std::env::temp_dir().join(format!(
-            "nivora-cef-sdk-test-{}",
-            std::process::id()
-        ));
+        let root = std::env::temp_dir().join(format!("nivora-cef-sdk-test-{}", std::process::id()));
         let _ = fs::remove_dir_all(&root);
 
         for relative in [

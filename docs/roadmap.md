@@ -12,6 +12,10 @@ Status labels describe evidence in this repository, not intended work.
 - [x] `cargo check --workspace --locked` passed on GitHub Actions Linux.
 - [x] `cargo test --workspace --locked` passed on GitHub Actions Linux.
 - [x] Windows-target Rust type-check passed on GitHub Actions (this check does not compile the C++ bridge).
+- [x] Windows rendering-engine candidates evaluated at architecture/documentation level (`docs/rendering-engine-evaluation.md`).
+- [ ] CEF Chrome-runtime spike built and tested against a pinned Windows distribution.
+- [ ] Production rendering backend decision accepted by Windows runtime tests.
+- [ ] Android application/client repository and shared-core integration located or established.
 
 ## UI/UX milestone — native Slint chrome
 
@@ -56,7 +60,17 @@ Status labels describe evidence in this repository, not intended work.
 - [ ] Password storage using Windows DPAPI and WebAuthn integration.
 - [ ] Site permissions, content settings, and privacy controls.
 
-## Milestone 3 — product hardening
+## Milestone 3 — Chromium extensions (conditional on CEF spike)
+
+- [ ] Pin CEF branch, Chromium version, Chrome runtime distribution and license notices.
+- [ ] Capture `chrome://extensions-support` API inventory for the pinned build.
+- [ ] Verify MV3 service-worker lifecycle and required APIs.
+- [ ] Implement isolated `nivora-cef-sys` backend spike without deleting WebKit.
+- [ ] Integrate extension action/popup/options UI and permission prompts.
+- [ ] Test uBlock Origin, Dark Reader, Bitwarden, Tampermonkey, SponsorBlock and Privacy Badger.
+- [ ] Publish an evidence-based extension compatibility matrix.
+
+## Milestone 4 — product hardening
 
 - [ ] Crash recovery and process termination handling.
 - [x] Win32 thread-message keyboard shortcuts: Ctrl+T, Ctrl+W, Ctrl+Tab, Ctrl+Shift+Tab (native runtime validation pending).
@@ -64,4 +78,4 @@ Status labels describe evidence in this repository, not intended work.
 - [ ] Installer, signed releases, update channel.
 - [ ] Native Windows UI automation and end-to-end regression tests.
 
-**Current milestone:** source implementation is present, but the first working native browser is not yet accepted because Windows build/runtime tests remain outstanding.
+**Current milestone:** architecture evaluation is documented. The existing WebKit implementation remains the active baseline. CEF is the leading candidate, but a pinned Chrome-runtime Windows spike and extension compatibility tests are required before any production backend switch. The first working native browser is not yet accepted because Windows build/runtime tests remain outstanding.

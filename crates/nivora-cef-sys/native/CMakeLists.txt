@@ -55,10 +55,6 @@ else()
   message(FATAL_ERROR "Nivora's native smoke host requires the CEF Windows sandbox.")
 endif()
 
-if(COMMAND ADD_WINDOWS_MANIFEST)
-  ADD_WINDOWS_MANIFEST("${CMAKE_CURRENT_SOURCE_DIR}" "${CEF_TARGET}" "exe")
-endif()
-
 COPY_FILES("${CEF_TARGET}" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${CEF_TARGET_OUT_DIR}")
 COPY_FILES("${CEF_TARGET}" "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "${CEF_TARGET_OUT_DIR}")
 

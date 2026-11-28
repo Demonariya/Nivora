@@ -17,9 +17,10 @@ $Required = @(
     'include\cef_app.h',
     'include\cef_version.h',
     'include\cef_sandbox_win.h',
+    'include\cef_version_info.h',
     'Release\libcef.dll',
     'Release\libcef.lib',
-    'Release\cef_sandbox.lib',
+    'Release\bootstrap.exe',
     'Resources\icudtl.dat'
 )
 
@@ -54,20 +55,25 @@ $ConfigureArgs = @(
     '-S', (Join-Path $PSScriptRoot '..\crates\nivora-cef-sys\native'),
     '-B', $BuildDirectory,
     '-A', 'x64',
-    "-DCEF_ROOT=$CefRoot",
-    '-DUSE_SANDBOX=ON'
+    "-DCEF_ROOT=$CefRoot"
 )
 & cmake @ConfigureArgs
 if ($LASTEXITCODE -ne 0) { throw 'CEF CMake configure failed.' }
 
 & cmake --build $BuildDirectory --config Release --target nivora-cef-host
-if ($LASTEXITCODE -ne 0) { throw 'CEF native host build failed.' }
+if ($LASTEXITCODE -ne 0) { throw 'CEF native client build failed.' }
 
-$Executable = Get-ChildItem -Path $BuildDirectory -Filter 'nivora-cef-host.exe' -File -Recurse |
+$ClientDll = Get-ChildItem -Path $BuildDirectory -Filter 'nivora-cef-host.dll' -File -Recurse |
     Select-Object -First 1 -ExpandProperty FullName
-if (-not $Executable) {
-    throw "Build completed but nivora-cef-host.exe was not found under: $BuildDirectory"
+if (-not $ClientDll) {
+    throw "Build completed but nivora-cef-host.dll was not found under: $BuildDirectory"
 }
 
-Write-Host "CEF native host built: $Executable"
-Write-Host "Run with executable path and --url=https://example.com"
+$OutputDirectory = Split-Path -Parent $ClientDll
+$Bootstrap = Join-Path $CefRoot 'Release\bootstrap.exe'
+$BootstrapHost = Join-Path $OutputDirectory 'nivora-cef-host.exe'
+Copy-Item -LiteralPath $Bootstrap -Destination $BootstrapHost -Force
+
+Write-Host "CEF client DLL built: $ClientDll"
+Write-Host "CEF bootstrap host staged: $BootstrapHost"
+Write-Host 'Run the bootstrap host with --url=https://example.com'

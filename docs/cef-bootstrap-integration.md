@@ -1,6 +1,6 @@
 # CEF Bootstrap Integration Plan (Windows)
 
-**Status:** Rust cdylib entrypoint and bootstrap-to-Slint shell startup are implemented in source. Native build and Windows launch remain unverified. CEF browser initialization and browser HWND embedding are not implemented.
+**Status:** Rust cdylib handoff, CEF child-process dispatch, browser-process initialization and shutdown are implemented in source. Native build and Windows launch remain unverified. CEF browser creation and HWND embedding are not implemented.
 
 ## Current process layout
 
@@ -36,7 +36,7 @@ This avoids forcing the CEF bootstrap build to provision two unrelated browser-e
 6. The Rust cdylib starts the Slint shell on the calling UI thread.
 7. Slint exits; the Rust export returns an exit code to the bootstrap.
 
-**Important boundary:** this milestone deliberately does not call `CefInitialize`. It validates the bootstrap process dispatch and Rust/Slint DLL handoff only. No CEF browser, renderer or GPU child is created by Nivora at this stage. The next CEF integration change must add browser-process initialization, message-loop scheduling and a browser view parented to the Slint HWND as one coordinated lifecycle.
+**Important boundary:** browser-process initialization is now present in source, but there is still no `CefBrowser` instance. Consequently, Nivora does not yet create a renderer/GPU process or display web content. `multi_threaded_message_loop` is selected because CEF documents it as supported on Windows and it avoids blocking Slint's main event loop. Initialization and shutdown remain on the bootstrap main thread. The next integration change must create the browser on CEF's UI thread, parent its native child HWND to the Slint HWND, and coordinate resize/focus/close before calling `CefShutdown`.
 
 ## Build and staging
 

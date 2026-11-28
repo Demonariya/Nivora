@@ -8,8 +8,16 @@ use std::error::Error;
 pub fn run() -> Result<(), Box<dyn Error>> {
     let ui = MainWindow::new()?;
 
-    #[cfg(windows)]
+    #[cfg(all(windows, feature = "webkit"))]
     run_with_webkit(ui)?;
+
+    #[cfg(all(windows, not(feature = "webkit")))]
+    {
+        ui.set_page_status(
+            "CEF bootstrap loaded the Rust/Slint shell. CEF browser rendering is not connected yet.".into(),
+        );
+        ui.run()?;
+    }
 
     #[cfg(not(windows))]
     {
@@ -22,7 +30,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "webkit"))]
 fn run_with_webkit(ui: MainWindow) -> Result<(), Box<dyn Error>> {
     use nivora_engine::{
         KeyboardShortcutCallback, LOAD_PROGRESS_CHANGED, NAVIGATION_COMMITTED, NAVIGATION_FAILED,

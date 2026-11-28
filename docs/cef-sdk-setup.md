@@ -1,6 +1,6 @@
-# CEF Windows SDK Spike
+# CEF Windows SDK and Native Host
 
-**State:** SDK gate scaffold committed. No CEF native browser has been compiled or launched yet.
+**State:** SDK validation and a sandbox-enabled standalone CEF smoke-host source project are committed. The native host has not yet been compiled or launched on Windows.
 
 ## Pinned candidate
 
@@ -9,66 +9,82 @@ The initial spike targets the official CEF Windows x64 Standard Distribution:
 - CEF: `156.0.14+g4fa4ab5`
 - Chromium: `156.0.8078.48`
 - Architecture: Windows x64
-- Distribution: Standard binary distribution (headers, import library, runtime DLLs, resources and sample projects)
+- Distribution: Standard binary distribution (headers, import library, runtime DLLs, resources, CMake configuration and upstream sample projects)
 
-The pin is based on the CEF Automated Builds page's Current Stable Build entry observed on 2026-11-28. The upstream download page lists a 350.17 MB Windows x64 archive for this build. Re-check the official build page before downloading or shipping; CEF/Chromium security fixes require a controlled update cadence.
+The pin matches the CEF Automated Builds page's Current Stable Build entry observed on 2026-11-28. The official page lists a 350.17 MB Windows x64 Standard archive. Re-check the official build page before downloading or shipping; CEF/Chromium security fixes require a controlled update cadence.
 
 ## Download and local setup
 
-1. Open the official CEF Automated Builds page: https://cef-builds.spotifycdn.com/index.html
-2. Select **Windows 64-bit** and download the Standard Distribution for the exact pinned CEF/Chromium versions above.
+1. Open the [official CEF Automated Builds page](https://cef-builds.spotifycdn.com/index.html).
+2. Select **Windows 64-bit** and download the Standard Distribution for the exact pinned versions above.
 3. Verify the archive checksum shown by the official download page before extraction.
-4. Extract the archive to a stable local path, for example `E:\SDKs\cef\156.0.14\`.
-5. Set `NIVORA_CEF_ROOT` to the extracted distribution root (the directory containing `include\`, `Release\`, and `Resources\`).
-6. Run `cargo test -p nivora-cef-sys`, then `cargo check --workspace --locked`.
+4. Extract the archive to a stable local path, for example `E:\SDKs\cef\156.0.14`.
+5. Set `NIVORA_CEF_ROOT` to the extracted distribution root (the directory containing `include\`, `Release\`, `Resources\`, and `cmake\`).
 
-PowerShell example:
+PowerShell:
 
 ```powershell
 $env:NIVORA_CEF_ROOT = 'E:\SDKs\cef\156.0.14'
 cargo test -p nivora-cef-sys
-cargo check --workspace --locked
+./scripts/build-cef-native.ps1
 ```
 
-The build script checks for the expected headers, import library, runtime DLL, ICU data, resources, and exact CEF/Chromium version macros. A different SDK version is rejected rather than silently accepted.
+The Rust SDK gate checks the expected headers, runtime DLL, import library, sandbox library, ICU data, resources, and exact CEF/Chromium version macros. A different SDK version is rejected rather than silently accepted.
 
-## What this scaffold does
+## Native smoke host
 
-- Adds an isolated `nivora-cef-sys` workspace crate.
-- Pins CEF and Chromium version constants.
-- Validates the expected Windows x64 SDK layout.
-- Validates the exact version macros in `cef_version.h`.
-- Keeps Linux CI and Windows type-check jobs usable when the large SDK is not installed.
-- Exposes `sdk_available()` as a build-time SDK-presence signal.
+The standalone native host lives under `crates/nivora-cef-sys/native` and is built with CMake + Visual Studio 2022:
 
-## What it does not do
+- `src/main.cpp` creates a minimal CEF browser window.
+- The host handles browser and child processes through the **same executable**.
+- The Windows CEF sandbox is enabled; sandbox information is created in the executable and passed to both `CefExecuteProcess` and `CefInitialize`.
+- The CEF message loop runs on the main thread.
+- The initial URL defaults to `https://example.com`; override it with `--url=https://...`.
+- CEF binaries and resources are copied beside the output executable by the upstream CEF CMake helpers.
 
-This crate does **not** yet:
-- link `libcef.dll`;
-- compile a C++ bridge;
-- initialize CEF;
-- start the CEF subprocess;
-- create a Chromium browser;
-- embed a browser HWND into Slint;
-- implement extensions or MV3 service workers.
+Build:
 
-Those features must be implemented and tested in the next native integration increment. The current WebKit backend remains the only runtime backend.
+```powershell
+./scripts/build-cef-native.ps1
+```
 
-## Next native acceptance gates
+Run the resulting host:
 
-1. Add a minimal CEF C++ host using the exact downloaded binary distribution.
-2. Compile the bridge with MSVC and verify required CEF symbols and runtime resources.
-3. Initialize CEF and run a separate subprocess executable.
-4. Create one child browser window hosted by the existing Win32/Slint window.
-5. Navigate to a local test page and an HTTPS site.
-6. Verify shutdown, message-loop integration, resize, focus, DPI and crash behavior.
-7. Record the actual `chrome://extensions-support` API inventory from this exact build.
-8. Only then begin the MV3 extension compatibility tests.
+```powershell
+& .\target\cef-native\out\nivora-cef-host.exe --url=https://example.com
+```
+
+The exact output path can vary with the selected CMake generator/configuration; the script checks for the expected executable and prints its path.
+
+## Current implementation boundary
+
+Implemented in source:
+- Isolated `nivora-cef-sys` workspace crate and pinned SDK validation.
+- CMake project for a Windows x64 native CEF host.
+- Minimal CEF app/client lifecycle, URL override, title updates and orderly message-loop shutdown.
+- Windows sandbox-enabled process entrypoint using the same executable for CEF child processes.
+- PowerShell SDK validation and native build script.
+
+Not implemented or verified yet:
+- No Windows/MSVC build result is available yet.
+- The standalone CEF host is not yet embedded in the Slint window.
+- Rust does not yet initialize CEF or own CEF browser instances.
+- The existing WebKit runtime remains the only production backend.
+- No extension, MV3, GPU, WebRTC or media compatibility result is claimed.
+
+## Next acceptance gates
+
+1. Build the native host with the exact pinned SDK on Windows x64.
+2. Launch it and verify browser + renderer/GPU child process startup with sandbox enabled.
+3. Navigate to local and HTTPS pages; verify title updates and clean shutdown.
+4. Integrate CEF startup/subprocess handling with the Rust executable and Slint HWND.
+5. Verify resize, focus, DPI, crash recovery and message-loop behavior.
+6. Record the actual `chrome://extensions-support` API inventory from this exact build.
+7. Only then begin the MV3 extension compatibility tests.
 
 ## Upstream references
 
-- Official CEF automated builds: https://cef-builds.spotifycdn.com/index.html
-- CEF repository and binary distribution guidance: https://github.com/chromiumembedded/cef
-- CEF application layout and runtime resources: https://chromiumembedded.github.io/cef/general_usage
-- CEF branch and build requirements: https://github.com/chromiumembedded/cef/blob/master/docs/branches_and_building.md
-- CEF security update guidance: https://github.com/chromiumembedded/cef#security-updates
+- [Official CEF automated builds](https://cef-builds.spotifycdn.com/index.html)
+- [CEF tutorial and Windows build steps](https://chromiumembedded.github.io/cef/tutorial)
+- [CEF general usage, process model and message-loop integration](https://chromiumembedded.github.io/cef/general_usage)
+- [CEF repository and binary distribution guidance](https://github.com/chromiumembedded/cef)

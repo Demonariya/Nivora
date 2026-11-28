@@ -17,8 +17,11 @@ Status labels describe evidence in this repository, not intended work.
 - [x] Conservative engine capability reporting and unit test added (CI execution pending).
 - [x] Add isolated `nivora-cef-sys` SDK-gate crate with pinned CEF 156.0.14 / Chromium 156.0.8078.48 and exact SDK layout/version validation.
 - [x] Document Windows x64 CEF distribution setup and native integration acceptance gates (`docs/cef-sdk-setup.md`).
+- [x] Add sandbox-enabled standalone CEF smoke-host source, MSVC/CMake project, and PowerShell build script.
+- [x] Add a gated Windows CEF native-host CI job for a pre-provisioned self-hosted runner.
 - [ ] Download/provision the pinned CEF distribution on a Windows x64 runner.
-- [ ] Build and launch a CEF Chrome-runtime host against the pinned Windows distribution.
+- [ ] Compile the standalone CEF smoke host with MSVC against the pinned distribution.
+- [ ] Launch the host and verify sandboxed renderer/GPU child processes, navigation, title updates, and clean shutdown.
 - [ ] Production rendering backend decision accepted by Windows runtime tests.
 - [ ] Android application/client repository and shared-core integration located or established.
 
@@ -67,7 +70,7 @@ Status labels describe evidence in this repository, not intended work.
 
 ## Milestone 3 — Chromium extensions (conditional on CEF spike)
 
-- [ ] Pin CEF branch, Chromium version, Chrome runtime distribution and license notices.
+- [x] Pin CEF branch, Chromium version, and Windows x64 Standard Distribution candidate; license packaging remains pending.
 - [ ] Capture `chrome://extensions-support` API inventory for the pinned build.
 - [ ] Verify MV3 service-worker lifecycle and required APIs.
 - [ ] Implement isolated `nivora-cef-sys` backend spike without deleting WebKit.
@@ -83,4 +86,4 @@ Status labels describe evidence in this repository, not intended work.
 - [ ] Installer, signed releases, update channel.
 - [ ] Native Windows UI automation and end-to-end regression tests.
 
-**Current milestone:** the engine-neutral Rust backend contract and a CEF SDK validation scaffold are implemented in source and documented. The CEF crate is not a browser backend and does not initialize or link Chromium. The exact pinned SDK has not yet been provisioned or compiled on Windows. The existing WebKit implementation remains the active runtime baseline; a native CEF host and extension compatibility tests are required before any production backend switch. The first working native browser is not yet accepted because Windows build/runtime tests remain outstanding.
+**Current milestone:** the engine-neutral Rust backend contract, pinned CEF SDK validation, and a sandbox-enabled standalone CEF smoke-host source project are committed. The native host has not yet been compiled or launched on Windows. It is a separate smoke-test executable and is not yet embedded in Slint or called by the Rust application. The existing WebKit implementation remains the only production runtime. Windows build/runtime tests and extension compatibility evidence are required before any backend switch.

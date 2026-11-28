@@ -151,3 +151,143 @@ mod tests {
         );
     }
 }
+
+
+/// Stable, engine-neutral description of the rendering backend.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EngineInfo {
+    pub id: &'static str,
+    pub name: &'static str,
+    pub version: Option<String>,
+}
+
+/// Capabilities are explicit so the UI never infers support from the backend name.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct EngineCapabilities {
+    pub hardware_acceleration: bool,
+    pub downloads: bool,
+    pub devtools: bool,
+    pub multiple_profiles: bool,
+    pub chrome_extensions: bool,
+    pub manifest_v3: bool,
+    pub web_rtc: bool,
+}
+
+/// Platform-independent operations exposed by a single browser view.
+///
+/// Implementations may have UI-thread affinity. They deliberately do not require
+/// Send or Sync; callers must create and use a view on its owning UI thread.
+pub trait EngineView {
+    fn navigate(&mut self, address: &str) -> Result<(), String>;
+    fn back(&mut self);
+    fn forward(&mut self);
+    fn reload(&mut self);
+    fn focus(&mut self);
+    fn resize(&mut self, x: i32, y: i32, width: i32, height: i32);
+    fn set_visible(&mut self, visible: bool);
+    fn can_go_back(&self) -> bool;
+    fn can_go_forward(&self) -> bool;
+}
+
+/// Factory interface for a rendering backend.
+///
+/// Native handles are confined to this platform-facing boundary. The returned
+/// view must be destroyed on the thread required by its rendering engine.
+pub trait EngineBackend {
+    fn info(&self) -> EngineInfo;
+    fn capabilities(&self) -> EngineCapabilities;
+
+    /// # Safety
+    /// parent_hwnd must be a valid parent window on the current UI thread and
+    /// remain valid until the returned view is dropped. The callback and context
+    /// must remain valid for every native callback until view destruction.
+    unsafe fn create_view(
+        &self,
+        parent_hwnd: *mut c_void,
+        bounds: (i32, i32, i32, i32),
+        callback: NavigationCallback,
+        callback_context: *mut c_void,
+    ) -> Result<Box<dyn EngineView>, String>;
+}
+
+/// Existing WinCairo implementation, retained as the current backend while the
+/// CEF Chrome-runtime spike is evaluated.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct WebKitBackend;
+
+impl EngineBackend for WebKitBackend {
+    fn info(&self) -> EngineInfo {
+        EngineInfo {
+            id: "webkit-wincairo",
+            name: "WebKit WinCairo",
+            version: None,
+        }
+    }
+
+    fn capabilities(&self) -> EngineCapabilities {
+        EngineCapabilities {
+            // These remain false until verified against the exact deployed SDK.
+            hardware_acceleration: false,
+            downloads: false,
+            devtools: false,
+            multiple_profiles: false,
+            chrome_extensions: false,
+            manifest_v3: false,
+            web_rtc: false,
+        }
+    }
+
+    unsafe fn create_view(
+        &self,
+        parent_hwnd: *mut c_void,
+        bounds: (i32, i32, i32, i32),
+        callback: NavigationCallback,
+        callback_context: *mut c_void,
+    ) -> Result<Box<dyn EngineView>, String> {
+        // SAFETY: forwards the caller's documented native-handle and callback
+        // lifetime contract to the existing WebKit constructor.
+        let view = unsafe {
+            WebKitEngine::new(parent_hwnd, bounds, callback, callback_context)
+        }
+        .map_err(str::to_owned)?;
+        Ok(Box::new(view))
+    }
+}
+
+impl EngineView for WebKitEngine {
+    fn navigate(&mut self, address: &str) -> Result<(), String> {
+        WebKitEngine::navigate(self, address)
+    }
+
+    fn back(&mut self) {
+        WebKitEngine::back(self);
+    }
+
+    fn forward(&mut self) {
+        WebKitEngine::forward(self);
+    }
+
+    fn reload(&mut self) {
+        WebKitEngine::reload(self);
+    }
+
+    fn focus(&mut self) {
+        WebKitEngine::focus(self);
+    }
+
+    fn resize(&mut self, x: i32, y: i32, width: i32, height: i32) {
+        WebKitEngine::resize(self, x, y, width, height);
+    }
+
+    fn set_visible(&mut self, visible: bool) {
+        WebKitEngine::set_visible(self, visible);
+    }
+
+    fn can_go_back(&self) -> bool {
+        WebKitEngine::can_go_back(self)
+    }
+
+    fn can_go_forward(&self) -> bool {
+        WebKitEngine::can_go_forward(self)
+    }
+}

@@ -1,8 +1,8 @@
 //! CEF SDK gate for Nivora.
 //!
-//! This crate does not embed Chromium. It validates that the pinned Windows
-//! CEF distribution is present before native bindings are introduced. The CEF
-//! ABI bridge is a separate implementation milestone.
+//! The pinned CEF 156 Windows distribution uses the official bootstrap
+//! executable for sandboxed clients. This crate currently validates the SDK;
+//! it does not yet initialize or embed CEF in the Rust/Slint application.
 
 /// Pinned CEF distribution selected for the initial Windows integration spike.
 pub const CEF_VERSION: &str = "156.0.14+g4fa4ab5+chromium-156.0.8078.48";
@@ -39,8 +39,8 @@ pub const fn sdk_available() -> bool {
 
 /// Validate the standard CEF Windows x64 distribution layout and version.
 ///
-/// Set NIVORA_CEF_ROOT to the extracted distribution directory containing
-/// include/, Release/libcef.dll, Release/libcef.lib and Resources/.
+/// Set NIVORA_CEF_ROOT to the extracted distribution root containing
+/// include/, Release/bootstrap.exe, Release/libcef.dll and Resources/.
 pub fn validate_sdk(root: impl AsRef<std::path::Path>) -> Result<(), CefSdkError> {
     let root = root.as_ref();
     if !root.is_dir() {
@@ -50,9 +50,11 @@ pub fn validate_sdk(root: impl AsRef<std::path::Path>) -> Result<(), CefSdkError
     for (relative, label) in [
         ("include/cef_version.h", "include/cef_version.h"),
         ("include/cef_app.h", "include/cef_app.h"),
+        ("include/cef_sandbox_win.h", "include/cef_sandbox_win.h"),
+        ("include/cef_version_info.h", "include/cef_version_info.h"),
         ("Release/libcef.dll", "Release/libcef.dll"),
         ("Release/libcef.lib", "Release/libcef.lib"),
-        ("Release/cef_sandbox.lib", "Release/cef_sandbox.lib"),
+        ("Release/bootstrap.exe", "Release/bootstrap.exe"),
         ("Resources/icudtl.dat", "Resources/icudtl.dat"),
         ("Resources/cef.pak", "Resources/cef.pak"),
     ] {
@@ -113,7 +115,7 @@ mod tests {
     }
 
     #[test]
-    fn validates_expected_distribution_layout() {
+    fn validates_bootstrap_distribution_layout() {
         let root = std::env::temp_dir().join(format!(
             "nivora-cef-sdk-test-{}",
             std::process::id()
@@ -123,9 +125,11 @@ mod tests {
         for relative in [
             "include/cef_version.h",
             "include/cef_app.h",
+            "include/cef_sandbox_win.h",
+            "include/cef_version_info.h",
             "Release/libcef.dll",
             "Release/libcef.lib",
-            "Release/cef_sandbox.lib",
+            "Release/bootstrap.exe",
             "Resources/icudtl.dat",
             "Resources/cef.pak",
         ] {

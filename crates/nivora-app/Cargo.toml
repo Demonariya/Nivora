@@ -7,9 +7,17 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [[bin]]
 name = "nivora"
 path = "src/main.rs"
 
+[features]
+default = ["webkit"]
+webkit = ["nivora-ui/webkit"]
+bootstrap = []
+
 [dependencies]
-nivora-ui.workspace = true
+nivora-ui = { workspace = true, default-features = false }

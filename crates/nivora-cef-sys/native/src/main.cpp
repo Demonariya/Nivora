@@ -11,6 +11,7 @@
 #include "include/cef_display_handler.h"
 #include "include/cef_life_span_handler.h"
 #include "include/cef_sandbox_win.h"
+#include "include/wrapper/cef_helpers.h"
 
 namespace {
 

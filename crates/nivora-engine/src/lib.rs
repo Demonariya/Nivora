@@ -163,7 +163,6 @@ mod tests {
     }
 }
 
-
 /// Stable, engine-neutral description of the rendering backend.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EngineInfo {
@@ -257,10 +256,8 @@ impl EngineBackend for WebKitBackend {
     ) -> Result<Box<dyn EngineView>, String> {
         // SAFETY: forwards the caller's documented native-handle and callback
         // lifetime contract to the existing WebKit constructor.
-        let view = unsafe {
-            WebKitEngine::new(parent_hwnd, bounds, callback, callback_context)
-        }
-        .map_err(str::to_owned)?;
+        let view = unsafe { WebKitEngine::new(parent_hwnd, bounds, callback, callback_context) }
+            .map_err(str::to_owned)?;
         Ok(Box::new(view))
     }
 }

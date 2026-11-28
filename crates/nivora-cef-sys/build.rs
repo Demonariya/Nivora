@@ -13,9 +13,11 @@ fn main() {
     let required = [
         "include/cef_version.h",
         "include/cef_app.h",
+        "include/cef_sandbox_win.h",
+        "include/cef_version_info.h",
         "Release/libcef.dll",
         "Release/libcef.lib",
-        "Release/cef_sandbox.lib",
+        "Release/bootstrap.exe",
         "Resources/icudtl.dat",
         "Resources/cef.pak",
     ];

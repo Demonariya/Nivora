@@ -68,13 +68,29 @@ foreach ($Macro in $ExpectedMacros.Keys) {
 }
 
 $BuildDirectory = [System.IO.Path]::GetFullPath($BuildDirectory)
+$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+
+# Build the Rust application as a loadable Windows DLL without requiring the
+# WinCairo SDK. The bootstrap path uses the Slint shell-only feature set.
+& cargo build --manifest-path (Join-Path $RepositoryRoot 'Cargo.toml') -p nivora-app --release --no-default-features --features bootstrap
+if ($LASTEXITCODE -ne 0) { throw 'Rust Nivora application DLL build failed.' }
+
+$AppDll = Join-Path $RepositoryRoot 'target\release\nivora_app.dll'
+$AppImportLibrary = Join-Path $RepositoryRoot 'target\release\nivora_app.dll.lib'
+foreach ($Artifact in @($AppDll, $AppImportLibrary)) {
+    if (-not (Test-Path -LiteralPath $Artifact -PathType Leaf)) {
+        throw "Rust cdylib build did not produce required artifact: $Artifact"
+    }
+}
+
 New-Item -ItemType Directory -Force -Path $BuildDirectory | Out-Null
 
 $ConfigureArgs = @(
     '-S', (Join-Path $PSScriptRoot '..\crates\nivora-cef-sys\native'),
     '-B', $BuildDirectory,
     '-A', 'x64',
-    "-DCEF_ROOT=$CefRoot"
+    "-DCEF_ROOT=$CefRoot",
+    "-DNIVORA_APP_IMPORT_LIB=$AppImportLibrary"
 )
 & cmake @ConfigureArgs
 if ($LASTEXITCODE -ne 0) { throw 'CEF CMake configure failed.' }
@@ -91,7 +107,9 @@ if (-not $ClientDll) {
 $OutputDirectory = Split-Path -Parent $ClientDll
 $BootstrapHost = Join-Path $OutputDirectory 'nivora-cef-host.exe'
 Copy-Item -LiteralPath $BootstrapPath -Destination $BootstrapHost -Force
+Copy-Item -LiteralPath $AppDll -Destination (Join-Path $OutputDirectory 'nivora_app.dll') -Force
 
-Write-Host "CEF client DLL built: $ClientDll"
-Write-Host "CEF bootstrap host staged: $BootstrapHost"
-Write-Host 'Run the bootstrap host with --url=https://example.com'
+Write-Host "Rust application DLL: $(Join-Path $OutputDirectory 'nivora_app.dll')"
+Write-Host "CEF bootstrap client DLL: $ClientDll"
+Write-Host "CEF bootstrap host: $BootstrapHost"
+Write-Host 'Run the bootstrap host to launch the Nivora Slint shell.'

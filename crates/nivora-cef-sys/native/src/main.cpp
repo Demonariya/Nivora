@@ -1,6 +1,5 @@
-// Minimal standalone CEF smoke host for Nivora.
-// This executable uses the same image for browser and renderer processes,
-// and keeps the Windows CEF sandbox enabled.
+// CEF client DLL loaded by the official Windows bootstrap.exe.
+// The bootstrap owns sandbox creation and supplies sandbox_info to RunWinMain.
 
 #include <windows.h>
 
@@ -11,6 +10,7 @@
 #include "include/cef_display_handler.h"
 #include "include/cef_life_span_handler.h"
 #include "include/cef_sandbox_win.h"
+#include "include/cef_version_info.h"
 #include "include/wrapper/cef_helpers.h"
 
 namespace {
@@ -68,7 +68,7 @@ class NivoraApp final : public CefApp, public CefBrowserProcessHandler {
     }
 
     CefWindowInfo window_info;
-    window_info.SetAsPopup(nullptr, "Nivora CEF Native Host");
+    window_info.SetAsPopup(nullptr, "Nivora CEF Bootstrap Host");
 
     CefBrowserSettings browser_settings;
     browser_settings.default_encoding = "UTF-8";
@@ -78,7 +78,7 @@ class NivoraApp final : public CefApp, public CefBrowserProcessHandler {
             window_info, client_, initial_url, browser_settings, nullptr,
             nullptr)) {
       OutputDebugStringW(
-          L"Nivora CEF host: CefBrowserHost::CreateBrowser failed.\n");
+          L"Nivora CEF client: CefBrowserHost::CreateBrowser failed.\n");
       CefQuitMessageLoop();
     }
   }
@@ -90,14 +90,11 @@ class NivoraApp final : public CefApp, public CefBrowserProcessHandler {
   DISALLOW_COPY_AND_ASSIGN(NivoraApp);
 };
 
-int RunCef(HINSTANCE instance) {
+int RunCef(HINSTANCE instance, void* sandbox_info) {
   CefMainArgs main_args(instance);
 
-  // Sandbox information is created inside this executable, as required by CEF.
-  CefScopedSandboxInfo sandbox;
-  void* sandbox_info = sandbox.sandbox_info();
-
-  // This same executable is relaunched for renderer, GPU and utility processes.
+  // The official bootstrap creates sandbox_info in its executable and passes
+  // the same pointer to this entry point for browser and child processes.
   const int process_exit_code =
       CefExecuteProcess(main_args, nullptr, sandbox_info);
   if (process_exit_code >= 0) {
@@ -121,6 +118,12 @@ int RunCef(HINSTANCE instance) {
 
 }  // namespace
 
-int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
-  return RunCef(instance);
+// Export consumed by CEF's bootstrap.exe. Do not add a standalone wWinMain:
+// the bootstrap executable is the process image for the browser and children.
+CEF_BOOTSTRAP_EXPORT int RunWinMain(HINSTANCE instance,
+                                    LPWSTR,
+                                    int,
+                                    void* sandbox_info,
+                                    cef_version_info_t*) {
+  return RunCef(instance, sandbox_info);
 }

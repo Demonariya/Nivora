@@ -1,0 +1,12 @@
+[package]
+name = "nivora-cef-sys"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Windows CEF SDK validation boundary for Nivora (native runtime integration is gated)"
+
+[lib]
+path = "src/lib.rs"

@@ -2758,6 +2758,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "nivora-cef-sys"
+version = "0.1.0"
+
+[[package]]
 name = "nivora-engine"
 version = "0.1.0"
 dependencies = [

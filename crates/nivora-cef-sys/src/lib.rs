@@ -1,0 +1,106 @@
+//! CEF SDK gate for Nivora.
+//!
+//! This crate intentionally does not pretend to embed Chromium. It validates
+//! that a pinned Windows CEF distribution is present before native bindings are
+//! introduced. The actual CEF ABI bridge is a separate, subsequent milestone.
+
+/// Pinned CEF distribution selected for the initial Windows integration spike.
+pub const CEF_VERSION: &str = "156.0.14+g4fa4ab5+chromium-156.0.8078.48";
+pub const CHROMIUM_VERSION: &str = "156.0.8078.48";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CefSdkError {
+    NotConfigured,
+    InvalidRoot,
+    MissingPath(&'static str),
+}
+
+impl std::fmt::Display for CefSdkError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NotConfigured => write!(f, "NIVORA_CEF_ROOT is not configured"),
+            Self::InvalidRoot => write!(f, "NIVORA_CEF_ROOT does not point to a CEF Windows x64 distribution"),
+            Self::MissingPath(path) => write!(f, "CEF distribution is missing required path: {path}"),
+        }
+    }
+}
+
+impl std::error::Error for CefSdkError {}
+
+/// Returns whether this build was configured with a validated CEF SDK.
+pub const fn sdk_available() -> bool {
+    cfg!(cef_sdk_available)
+}
+
+/// Validate the standard CEF Windows x64 distribution layout.
+///
+/// Set NIVORA_CEF_ROOT to the extracted distribution directory containing
+/// include/, Release/libcef.dll, Release/libcef.lib and Resources/.
+pub fn validate_sdk(root: impl AsRef<std::path::Path>) -> Result<(), CefSdkError> {
+    let root = root.as_ref();
+    if !root.is_dir() {
+        return Err(CefSdkError::InvalidRoot);
+    }
+
+    for (relative, label) in [
+        ("include/cef_version.h", "include/cef_version.h"),
+        ("include/cef_app.h", "include/cef_app.h"),
+        ("Release/libcef.dll", "Release/libcef.dll"),
+        ("Release/libcef.lib", "Release/libcef.lib"),
+        ("Resources/icudtl.dat", "Resources/icudtl.dat"),
+        ("Resources/resources.pak", "Resources/resources.pak"),
+    ] {
+        if !root.join(relative).is_file() {
+            return Err(CefSdkError::MissingPath(label));
+        }
+    }
+
+    Ok(())
+}
+
+/// Validate the SDK path configured for this build.
+pub fn configured_sdk() -> Result<std::path::PathBuf, CefSdkError> {
+    let root = std::env::var_os("NIVORA_CEF_ROOT").ok_or(CefSdkError::NotConfigured)?;
+    let root = std::path::PathBuf::from(root);
+    validate_sdk(&root)?;
+    Ok(root)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{CEF_VERSION, CHROMIUM_VERSION, CefSdkError, validate_sdk};
+    use std::fs;
+
+    #[test]
+    fn pins_cef_and_chromium_versions() {
+        assert!(CEF_VERSION.starts_with("156.0.14+"));
+        assert_eq!(CHROMIUM_VERSION, "156.0.8078.48");
+    }
+
+    #[test]
+    fn rejects_nonexistent_sdk_root() {
+        let path = std::env::temp_dir().join("nivora-cef-sdk-does-not-exist");
+        assert_eq!(validate_sdk(path), Err(CefSdkError::InvalidRoot));
+    }
+
+    #[test]
+    fn validates_expected_distribution_layout() {
+        let root = std::env::temp_dir().join(format!("nivora-cef-sdk-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        for relative in [
+            "include/cef_version.h",
+            "include/cef_app.h",
+            "Release/libcef.dll",
+            "Release/libcef.lib",
+            "Resources/icudtl.dat",
+            "Resources/resources.pak",
+        ] {
+            let path = root.join(relative);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, b"test fixture").unwrap();
+        }
+
+        assert_eq!(validate_sdk(&root), Ok(()));
+        fs::remove_dir_all(root).unwrap();
+    }
+}

@@ -4,6 +4,7 @@ members = [
     "crates/nivora-app",
     "crates/nivora-ui",
     "crates/nivora-engine",
+    "crates/nivora-cef-sys",
     "crates/nivora-webkit-sys",
     "crates/nivora-storage",
     "crates/nivora-tabs",

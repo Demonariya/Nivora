@@ -48,6 +48,8 @@ jobs:
         env:
           NIVORA_SKIP_WEBKIT_NATIVE_FOR_CHECK: "1"
         run: cargo check --workspace --exclude nivora-storage --target x86_64-pc-windows-msvc --locked
+      - name: Type-check Windows bootstrap cdylib feature set
+        run: cargo check -p nivora-app --no-default-features --features bootstrap --target x86_64-pc-windows-msvc --locked
 
   windows-native:
     name: Windows WinCairo integration (manual; requires pre-provisioned self-hosted SDK runner)

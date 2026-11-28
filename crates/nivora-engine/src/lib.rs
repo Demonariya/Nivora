@@ -119,6 +119,17 @@ mod tests {
     use super::normalize_address;
 
     #[test]
+    fn webkit_backend_reports_only_verified_capabilities() {
+        use super::{EngineBackend, WebKitBackend};
+
+        let backend = WebKitBackend;
+        assert_eq!(backend.info().id, "webkit-wincairo");
+        let capabilities = backend.capabilities();
+        assert!(!capabilities.chrome_extensions);
+        assert!(!capabilities.manifest_v3);
+    }
+
+    #[test]
     fn preserves_explicit_schemes() {
         assert_eq!(
             normalize_address("https://example.com"),

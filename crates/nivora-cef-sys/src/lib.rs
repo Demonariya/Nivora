@@ -55,6 +55,27 @@ pub fn validate_sdk(root: impl AsRef<std::path::Path>) -> Result<(), CefSdkError
         }
     }
 
+    let header = std::fs::read_to_string(root.join("include/cef_version.h"))
+        .map_err(|_| CefSdkError::MissingPath("readable include/cef_version.h"))?;
+    for (key, expected) in [
+        ("CEF_VERSION_MAJOR", "156"),
+        ("CEF_VERSION_MINOR", "0"),
+        ("CEF_VERSION_PATCH", "14"),
+        ("CHROME_VERSION_MAJOR", "156"),
+        ("CHROME_VERSION_MINOR", "0"),
+        ("CHROME_VERSION_BUILD", "8078"),
+        ("CHROME_VERSION_PATCH", "48"),
+    ] {
+        let prefix = format!("#define {key} ");
+        let actual = header
+            .lines()
+            .find_map(|line| line.trim().strip_prefix(&prefix))
+            .map(str::trim);
+        if actual != Some(expected) {
+            return Err(CefSdkError::InvalidRoot);
+        }
+    }
+
     Ok(())
 }
 
@@ -97,7 +118,12 @@ mod tests {
         ] {
             let path = root.join(relative);
             fs::create_dir_all(path.parent().unwrap()).unwrap();
-            fs::write(path, b"test fixture").unwrap();
+            let contents = if relative == "include/cef_version.h" {
+                b"#define CEF_VERSION_MAJOR 156\n#define CEF_VERSION_MINOR 0\n#define CEF_VERSION_PATCH 14\n#define CHROME_VERSION_MAJOR 156\n#define CHROME_VERSION_MINOR 0\n#define CHROME_VERSION_BUILD 8078\n#define CHROME_VERSION_PATCH 48\n".as_slice()
+            } else {
+                b"test fixture".as_slice()
+            };
+            fs::write(path, contents).unwrap();
         }
 
         assert_eq!(validate_sdk(&root), Ok(()));

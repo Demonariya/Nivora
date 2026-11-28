@@ -17,7 +17,7 @@ fn main() {
         "Release/libcef.lib",
         "Release/cef_sandbox.lib",
         "Resources/icudtl.dat",
-        "Resources/resources.pak",
+        "Resources/cef.pak",
     ];
 
     for relative in required {

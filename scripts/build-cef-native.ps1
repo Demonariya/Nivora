@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$CefRoot = $env:NIVORA_CEF_ROOT,
+    [string]$BootstrapPath = $env:NIVORA_CEF_BOOTSTRAP,
     [string]$BuildDirectory = (Join-Path $PSScriptRoot '..\target\cef-native')
 )
 
@@ -20,15 +21,33 @@ $Required = @(
     'include\cef_version_info.h',
     'Release\libcef.dll',
     'Release\libcef.lib',
-    'Release\bootstrap.exe',
     'Resources\icudtl.dat'
 )
 
 foreach ($RelativePath in $Required) {
     $Candidate = Join-Path $CefRoot $RelativePath
     if (-not (Test-Path -LiteralPath $Candidate -PathType Leaf)) {
-        throw "CEF distribution is incomplete: $RelativePath"
+        throw "CEF standard distribution is incomplete: $RelativePath"
     }
+}
+
+if ([string]::IsNullOrWhiteSpace($BootstrapPath)) {
+    $CandidateBootstrap = Join-Path $CefRoot 'Release\bootstrap.exe'
+    if (Test-Path -LiteralPath $CandidateBootstrap -PathType Leaf) {
+        $BootstrapPath = $CandidateBootstrap
+    }
+    else {
+        throw @'
+The CEF 138+ Windows sandbox bootstrap is distributed separately from the standard SDK in some build layouts.
+Set NIVORA_CEF_BOOTSTRAP to the matching CEF 156 Windows x64 bootstrap.exe from the sandbox distribution.
+The bootstrap must come from the same CEF/Chromium build as NIVORA_CEF_ROOT.
+'@
+    }
+}
+
+$BootstrapPath = (Resolve-Path $BootstrapPath).Path
+if ((Split-Path -Leaf $BootstrapPath) -ne 'bootstrap.exe') {
+    throw 'NIVORA_CEF_BOOTSTRAP must point to bootstrap.exe.'
 }
 
 $VersionHeader = Get-Content (Join-Path $CefRoot 'include\cef_version.h') -Raw
@@ -70,9 +89,8 @@ if (-not $ClientDll) {
 }
 
 $OutputDirectory = Split-Path -Parent $ClientDll
-$Bootstrap = Join-Path $CefRoot 'Release\bootstrap.exe'
 $BootstrapHost = Join-Path $OutputDirectory 'nivora-cef-host.exe'
-Copy-Item -LiteralPath $Bootstrap -Destination $BootstrapHost -Force
+Copy-Item -LiteralPath $BootstrapPath -Destination $BootstrapHost -Force
 
 Write-Host "CEF client DLL built: $ClientDll"
 Write-Host "CEF bootstrap host staged: $BootstrapHost"

@@ -29,3 +29,18 @@ All bridge calls are intended for the same Win32 UI thread that owns the Slint w
 ## Persistence and tabs
 
 nivora-storage provides a SQLite history schema and query methods. nivora-tabs provides the in-memory tab model. The first native milestone hosts one WebKit view; multi-view tab lifecycle and persistence wiring remain future work.
+
+## Rendering backend boundary
+
+The nivora-engine crate now defines an engine-neutral contract:
+
+- EngineBackend reports stable engine identity and verified capabilities, then creates a browser view.
+- EngineView exposes navigation, history traversal, reload, focus, resize, visibility and back/forward availability.
+- EngineInfo identifies the backend without leaking engine-specific native types.
+- EngineCapabilities lets the UI gate features based on verified runtime support instead of assumptions.
+
+WebKitBackend adapts the existing WebKitEngine to this contract. The original WebKitEngine API remains available so the current app is not forced into a risky all-at-once migration. The current capability report is deliberately conservative: features not yet verified against the deployed WinCairo SDK are reported as unavailable.
+
+The traits do not require Send or Sync because the current native view is UI-thread-affine. Native HWNDs and callback pointers cross only the backend creation boundary. The caller remains responsible for callback/context lifetime and for destroying the view on the engine's required thread.
+
+A future CEF implementation belongs in a separate native sys crate and must implement EngineBackend/EngineView. CEF-specific extension interfaces must be exposed through a separate capability-gated extension subsystem; the generic EngineView must not grow fake Chrome API methods. The app should migrate from the concrete WebKitEngine to a selected EngineBackend only after the CEF spike has passed Windows runtime and extension acceptance tests.

@@ -1,87 +1,74 @@
 # CEF Bootstrap Integration Plan (Windows)
 
-**Status:** Architecture decision recorded; Rust/Slint integration is not implemented.
+**Status:** Rust cdylib entrypoint and bootstrap-to-Slint shell startup are implemented in source. Native build and Windows launch remain unverified. CEF browser initialization and browser HWND embedding are not implemented.
 
-## Why the process model changes
-
-The pinned CEF 156 distribution follows the CEF 138+ Windows sandbox model. The official bootstrap.exe is the executable image. It creates sandbox information and loads a client DLL, then calls the DLL's exported RunWinMain(HINSTANCE, LPWSTR, int, void*, cef_version_info_t*) entrypoint. The client must forward the supplied sandbox pointer to both CefExecuteProcess and CefInitialize.
-
-Consequences:
-
-- Do not link the removed legacy cef_sandbox.lib into a third-party Rust executable.
-- Do not create sandbox information from inside the client DLL.
-- Do not set browser_subprocess_path for this sandboxed bootstrap mode.
-- The matching bootstrap executable and client DLL must be deployed together.
-- The browser and child-process startup path must be tested with the exact pinned CEF distribution.
-
-## Intended integrated process layout
+## Current process layout
 
 ```text
 nivora-cef-host.exe          Official CEF bootstrap executable
-  └── nivora.dll             Rust application DLL loaded by bootstrap
-       ├── exported RunWinMain entrypoint
-       ├── Rust startup / Slint UI
-       └── CEF ABI boundary (native C++ implementation)
-            ├── CefExecuteProcess
-            ├── CefInitialize
-            ├── browser/client handlers
-            ├── browser HWND lifecycle
-            └── CefDoMessageLoopWork scheduling
+  └── nivora-cef-host.dll    Native CEF bootstrap client
+       ├── exported RunWinMain
+       ├── CefExecuteProcess (child-process dispatch)
+       └── imports nivora_app.dll
+            └── nivora_rust_run_ui() C ABI
+                 └── nivora_ui::run()
+                      └── Slint MainWindow
 ```
 
-The currently committed nivora-cef-host.dll is only a native smoke-test client. It creates a standalone CEF popup window and proves neither Rust integration nor Slint embedding. It is not the final application DLL.
+The Rust application crate now produces both the existing `nivora.exe` binary and a `nivora_app.dll` cdylib. The C++ bootstrap client links against the cdylib import library and calls its stable C ABI export. Rust panics and UI startup errors are contained at the FFI boundary and translated to integer process exit codes.
 
-The Rust application should become a library artifact that can be loaded by the bootstrap (for example, a cdylib with a bootstrap-compatible exported entrypoint), while the current executable may remain a separate development launcher. The exact Cargo target layout should be implemented only with a Windows/MSVC build test in place.
+## Feature separation
 
-## Startup sequence
+- The normal desktop executable retains the default `webkit` feature and existing WebKit WinCairo behavior.
+- The bootstrap build uses `--no-default-features --features bootstrap`.
+- This shell-only mode does not compile or link the WebKit native bridge and therefore does not require the WinCairo SDK.
+- The shell-only status text explicitly says that CEF browser rendering is not connected yet.
 
-1. Bootstrap starts and creates sandbox information.
-2. Bootstrap loads the Nivora client DLL and calls RunWinMain.
-3. The Nivora entrypoint calls the CEF process-dispatch function before creating Slint.
-4. If this is a renderer/GPU/utility child process, CEF handles it and the entrypoint returns its exit code without starting Slint.
-5. If this is the browser process, initialize CEF with the supplied sandbox pointer.
-6. Create the Slint top-level window and obtain its Win32 HWND.
-7. Create CEF browser views as child windows of the Slint host window.
-8. Pump CEF work through the same UI thread as Slint.
-9. Close browser instances, complete CEF shutdown, then tear down Slint and return from the bootstrap DLL entrypoint.
+This avoids forcing the CEF bootstrap build to provision two unrelated browser-engine SDKs while the CEF view integration is still pending.
 
-The precise shutdown order must be validated against CEF's callback requirements. No CEF API may be called after CefShutdown.
+## Current startup sequence
 
-## Message-loop decision
+1. The official bootstrap starts and creates sandbox information.
+2. Bootstrap loads `nivora-cef-host.dll` and calls its exported `RunWinMain`.
+3. The C++ entrypoint passes the bootstrap-provided sandbox pointer to `CefExecuteProcess`.
+4. If this is a CEF child process, CEF handles it and the returned exit code is propagated without starting Rust or Slint.
+5. If this is the browser process, `CefExecuteProcess` returns the browser-process sentinel and the client calls `nivora_rust_run_ui`.
+6. The Rust cdylib starts the Slint shell on the calling UI thread.
+7. Slint exits; the Rust export returns an exit code to the bootstrap.
 
-Do not call CefRunMessageLoop on the same thread that runs Slint's ComponentHandle::run(); both functions own a blocking event loop.
+**Important boundary:** this milestone deliberately does not call `CefInitialize`. It validates the bootstrap process dispatch and Rust/Slint DLL handoff only. No CEF browser, renderer or GPU child is created by Nivora at this stage. The next CEF integration change must add browser-process initialization, message-loop scheduling and a browser view parented to the Slint HWND as one coordinated lifecycle.
 
-The preferred integration candidate is:
+## Build and staging
 
-- multi_threaded_message_loop = false
-- external_message_pump = true
-- Handle OnScheduleMessagePumpWork in the browser-process handler.
-- Schedule CefDoMessageLoopWork on the Slint/UI thread at the requested delay.
-- Coalesce redundant pump requests and cancel pending work during shutdown.
+PowerShell environment:
 
-A fixed high-frequency timer may be used only as a temporary diagnostic fallback. The production pump must avoid busy-waiting, missed scheduled work and re-entrant CEF calls.
+```powershell
+$env:NIVORA_CEF_ROOT = 'E:\SDKs\cef\156.0.14'
+$env:NIVORA_CEF_BOOTSTRAP = 'E:\SDKs\cef\156.0.14-sandbox\Release\bootstrap.exe'
+./scripts/build-cef-native.ps1
+```
 
-## Native window ownership
+The build script:
 
-- Slint owns the top-level HWND.
-- CEF owns each browser child HWND and its renderer lifecycle.
-- Rust owns the opaque CEF view handle and destroys it on the required UI thread.
-- The CEF bridge must expose a C ABI; CEF C++ class layouts and CefRefPtr must never cross into Rust.
-- Resize, visibility, focus, DPI, z-order, tab switching and close ordering need Windows UI tests.
-- CEF browser callbacks must not retain pointers to Rust objects beyond their documented lifetime. Use explicit registration/unregistration and stable callback contexts.
+1. Validates the pinned CEF 156.0.14 / Chromium 156.0.8078.48 Standard SDK.
+2. Builds `nivora-app` as a release cdylib with the shell-only feature set.
+3. Verifies `target/release/nivora_app.dll` and `target/release/nivora_app.dll.lib`.
+4. Configures and builds the CEF bootstrap client DLL against the Rust import library.
+5. Stages the matching official bootstrap as `nivora-cef-host.exe`.
+6. Copies `nivora_app.dll` beside the bootstrap and client DLL.
 
-## Acceptance gates
+The CEF Windows CI job is gated behind the pre-provisioned self-hosted runner and the `CEF_SDK_READY` repository variable. The runner must have the CEF SDK and matching bootstrap available through `NIVORA_CEF_ROOT` and `NIVORA_CEF_BOOTSTRAP`.
 
-- [ ] Confirm CEF 156 bootstrap/client loading with the exact SDK.
-- [ ] Add a Rust DLL entrypoint callable by the bootstrap.
-- [ ] Verify child-process dispatch returns before Slint starts.
-- [ ] Verify browser-process initialization uses the bootstrap-provided sandbox pointer.
-- [ ] Integrate CEF external message pumping with Slint.
-- [ ] Embed one CEF browser HWND in the Slint host and verify resize/focus/input/DPI.
-- [ ] Verify multiple tabs, background visibility and teardown.
-- [ ] Verify renderer crash and browser shutdown behavior.
-- [ ] Run Windows/MSVC build and runtime CI before enabling the backend.
-- [ ] Keep WebKit as the fallback until all acceptance gates pass.
+## Remaining integration work
+
+- [ ] Compile Rust cdylib and native client DLL with MSVC on Windows x64.
+- [ ] Launch bootstrap and verify the Rust cdylib is loaded and Slint window appears.
+- [ ] Verify CEF child-process dispatch never starts Slint in child processes.
+- [ ] Initialize CEF in browser-process mode with the bootstrap-provided sandbox pointer.
+- [ ] Integrate CEF message pumping with the Slint event loop.
+- [ ] Obtain the Slint HWND and create a CEF child browser view within it.
+- [ ] Verify resize, focus, keyboard input, DPI, tab visibility and shutdown.
+- [ ] Keep WebKit as the production fallback until CEF acceptance tests pass.
 
 ## Upstream references
 

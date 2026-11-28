@@ -17,11 +17,11 @@ Status labels describe evidence in this repository, not intended work.
 - [x] Conservative engine capability reporting and unit test added (CI execution pending).
 - [x] Add isolated `nivora-cef-sys` SDK-gate crate with pinned CEF 156.0.14 / Chromium 156.0.8078.48 and exact SDK layout/version validation.
 - [x] Document Windows x64 CEF distribution setup and native integration acceptance gates (`docs/cef-sdk-setup.md`).
-- [x] Add sandbox-enabled standalone CEF smoke-host source, MSVC/CMake project, and PowerShell build script.
+- [x] Add a CEF 138+ bootstrap-compatible client DLL source, MSVC/CMake project, and PowerShell build/staging script.
 - [x] Add a gated Windows CEF native-host CI job for a pre-provisioned self-hosted runner.
-- [ ] Download/provision the pinned CEF distribution on a Windows x64 runner.
-- [ ] Compile the standalone CEF smoke host with MSVC against the pinned distribution.
-- [ ] Launch the host and verify sandboxed renderer/GPU child processes, navigation, title updates, and clean shutdown.
+- [ ] Download/provision the pinned CEF distribution (including official bootstrap.exe) on a Windows x64 runner.
+- [ ] Compile the bootstrap-compatible CEF client DLL with MSVC against the pinned distribution.
+- [ ] Launch the official bootstrap + Nivora client DLL and verify sandboxed renderer/GPU child processes, navigation, title updates, and clean shutdown.
 - [ ] Production rendering backend decision accepted by Windows runtime tests.
 - [ ] Android application/client repository and shared-core integration located or established.
 
@@ -86,4 +86,4 @@ Status labels describe evidence in this repository, not intended work.
 - [ ] Installer, signed releases, update channel.
 - [ ] Native Windows UI automation and end-to-end regression tests.
 
-**Current milestone:** the engine-neutral Rust backend contract, pinned CEF SDK validation, and a sandbox-enabled standalone CEF smoke-host source project are committed. The native host has not yet been compiled or launched on Windows. It is a separate smoke-test executable and is not yet embedded in Slint or called by the Rust application. The existing WebKit implementation remains the only production runtime. Windows build/runtime tests and extension compatibility evidence are required before any backend switch.
+**Current milestone:** the engine-neutral Rust backend contract, pinned CEF SDK validation, and a sandbox-enabled standalone CEF smoke-host source project are committed. The bootstrap-based native client DLL has not yet been compiled or launched on Windows. It is a separate smoke-test client and is not yet embedded in Slint or called by the Rust application. CEF 138+ sandboxing requires the official bootstrap executable; the legacy cef_sandbox.lib approach is not used. The existing WebKit implementation remains the only production runtime. Windows build/runtime tests and extension compatibility evidence are required before any backend switch.

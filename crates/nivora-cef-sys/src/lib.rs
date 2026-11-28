@@ -142,6 +142,14 @@ mod tests {
         }
 
         assert_eq!(validate_sdk(&root), Ok(()));
+
+        fs::write(
+            root.join("include/cef_version.h"),
+            b"#define CEF_VERSION_MAJOR 155\\n",
+        )
+        .unwrap();
+        assert_eq!(validate_sdk(&root), Err(CefSdkError::InvalidRoot));
+
         fs::remove_dir_all(root).unwrap();
     }
 }

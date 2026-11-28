@@ -22,6 +22,8 @@ Status labels describe evidence in this repository, not intended work.
 - [ ] Download/provision the pinned CEF distribution (including official bootstrap.exe) on a Windows x64 runner.
 - [ ] Compile the bootstrap-compatible CEF client DLL with MSVC against the pinned distribution.
 - [ ] Launch the official bootstrap + Nivora client DLL and verify sandboxed renderer/GPU child processes, navigation, title updates, and clean shutdown.
+- [ ] Implement bootstrap-compatible Rust application DLL entrypoint and CEF startup dispatch before Slint initialization.
+- [ ] Integrate CEF external message pump with the Slint UI event loop and validate HWND parenting/lifetime.
 - [ ] Production rendering backend decision accepted by Windows runtime tests.
 - [ ] Android application/client repository and shared-core integration located or established.
 

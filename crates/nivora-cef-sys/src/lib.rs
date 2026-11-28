@@ -54,7 +54,7 @@ pub fn validate_sdk(root: impl AsRef<std::path::Path>) -> Result<(), CefSdkError
         ("Release/libcef.lib", "Release/libcef.lib"),
         ("Release/cef_sandbox.lib", "Release/cef_sandbox.lib"),
         ("Resources/icudtl.dat", "Resources/icudtl.dat"),
-        ("Resources/resources.pak", "Resources/resources.pak"),
+        ("Resources/cef.pak", "Resources/cef.pak"),
     ] {
         if !root.join(relative).is_file() {
             return Err(CefSdkError::MissingPath(label));
@@ -127,7 +127,7 @@ mod tests {
             "Release/libcef.lib",
             "Release/cef_sandbox.lib",
             "Resources/icudtl.dat",
-            "Resources/resources.pak",
+            "Resources/cef.pak",
         ] {
             let path = root.join(relative);
             fs::create_dir_all(path.parent().unwrap()).unwrap();

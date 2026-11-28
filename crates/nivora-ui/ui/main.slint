@@ -99,7 +99,7 @@ component TabItem inherits Rectangle {
     in property <bool> active: true;
     callback clicked();
     callback close-requested();
-    callback create-drag-data(int) -> data-transfer;
+    pure callback create-drag-data(int) -> data-transfer;
     callback reorder-requested(data-transfer, int);
 
     accessible-role: tab;
@@ -279,7 +279,7 @@ export component MainWindow inherits Window {
     callback new-tab();
     callback close-tab(int);
     callback select-tab(int);
-    callback create-tab-drag-data(int) -> data-transfer;
+    pure callback create-tab-drag-data(int) -> data-transfer;
     callback reorder-tab(data-transfer, int);
 
     Rectangle {
